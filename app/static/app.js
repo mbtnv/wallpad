@@ -3,9 +3,13 @@
   var CLOCK_INTERVAL_MS = 1000;
   var PAGE_RELOAD_INTERVAL_MS = 1000 * 60 * 30;
   var ERROR_RELOAD_DELAY_MS = 10000;
+  var CONFIG_RELOAD_DELAY_MS = 600;
+  var ACTIVE_PAGE_STORAGE_KEY = "wallpad-active-page";
   var statusTimer = null;
   var errorReloadTimer = null;
   var dashboardData = null;
+  var activePageId = null;
+  var dashboardConfigVersion = null;
 
   function byId(id) {
     return document.getElementById(id);
@@ -165,10 +169,34 @@
       }
 
       clearErrorReload();
-      dashboardData = payload;
-      renderDashboard(payload);
-      showStatus("", false);
+      handleDashboardPayload(payload);
     });
+  }
+
+  function handleDashboardPayload(payload) {
+    if (
+      dashboardConfigVersion &&
+      payload &&
+      payload.config_version &&
+      dashboardConfigVersion !== payload.config_version
+    ) {
+      showStatus("Dashboard config updated. Reloading...", false);
+      window.setTimeout(function () {
+        window.location.reload();
+      }, CONFIG_RELOAD_DELAY_MS);
+      return;
+    }
+
+    dashboardConfigVersion = payload ? payload.config_version : dashboardConfigVersion;
+    dashboardData = payload;
+    renderDashboard(payload);
+
+    if (payload && payload.config_error) {
+      showStatus(payload.config_error, true);
+      return;
+    }
+
+    showStatus("", false);
   }
 
   function scheduleErrorReload() {
@@ -191,87 +219,83 @@
   }
 
   function renderUnavailableState() {
-    setText("weather-temp", "--");
-    setText("weather-condition", "Dashboard unavailable");
-    setText("indoor-temp", "--");
-    setText("outdoor-temp", "--");
-    setText("heater-state", "--");
-    setText("heater-mode", "No connection");
-    setText("last-updated", "Unable to load dashboard");
-    renderSceneButtons([]);
-    renderModeButtons([]);
+    renderDashboard({
+      generated_at: null,
+      default_page: "offline",
+      pages: [
+        {
+          id: "offline",
+          title: "Offline",
+          widgets: [
+            {
+              id: "offline-state",
+              type: "sensor",
+              title: "Dashboard",
+              primary_text: "--",
+              secondary_text: "Dashboard unavailable",
+              rows: [],
+              actions: []
+            }
+          ]
+        }
+      ]
+    });
   }
 
   function renderDashboard(data) {
-    renderWeather(data.weather, data.home);
-    renderHeater(data.heater);
-    renderSceneButtons(data.scenes || []);
-    setLastUpdated(data.generated_at);
+    var pages = (data && data.pages) || [];
+    var selectedPageId = resolveActivePageId(pages, data ? data.default_page : null);
+    var page = findPage(pages, selectedPageId);
+
+    activePageId = selectedPageId;
+    saveActivePageId(selectedPageId);
+
+    renderPageTabs(pages, selectedPageId);
+    renderPage(page);
+    setLastUpdated(data ? data.generated_at : null);
   }
 
-  function renderWeather(weather, home) {
-    if (weather && weather.available) {
-      setText("weather-temp", formatTemperature(weather.temperature, weather.temperature_unit));
-      setText("weather-condition", humanize(weather.condition));
-    } else {
-      setText("weather-temp", "--");
-      setText("weather-condition", "Weather unavailable");
+  function resolveActivePageId(pages, defaultPageId) {
+    var storedPageId = activePageId || loadSavedPageId();
+    var fallbackPageId = defaultPageId;
+
+    if (hasPage(pages, storedPageId)) {
+      return storedPageId;
     }
 
-    if (home) {
-      setText(
-        "indoor-temp",
-        formatTemperature(home.indoor_temperature, home.indoor_temperature_unit)
-      );
-      setText(
-        "outdoor-temp",
-        formatTemperature(home.outdoor_temperature, home.outdoor_temperature_unit)
-      );
+    if (hasPage(pages, fallbackPageId)) {
+      return fallbackPageId;
     }
+
+    if (pages.length) {
+      return pages[0].id;
+    }
+
+    return null;
   }
 
-  function renderHeater(heater) {
-    var toggleButton = byId("heater-toggle");
-    var heaterName = "Heater";
-    var modeText = "Modes unavailable";
-
-    if (heater && heater.friendly_name) {
-      heaterName = heater.friendly_name;
-    }
-
-    if (!heater || !heater.available) {
-      setText("heater-state", heaterName + " offline");
-      setText("heater-mode", "No live state");
-      if (toggleButton) {
-        toggleButton.textContent = "Toggle";
-        toggleButton.disabled = true;
-      }
-      renderModeButtons([]);
-      return;
-    }
-
-    setText("heater-state", heater.is_on ? "On" : "Off");
-    if (heater.mode) {
-      modeText = "Mode: " + humanize(heater.mode);
-    }
-    setText("heater-mode", modeText);
-
-    if (toggleButton) {
-      toggleButton.textContent = heater.is_on ? "Turn Off" : "Turn On";
-      toggleButton.disabled = false;
-      toggleButton.onclick = function () {
-        sendAction("POST", "/api/actions/heater/toggle", null, "Heater updated.");
-      };
-    }
-
-    renderModeButtons(heater.supported_modes || [], heater.mode);
+  function hasPage(pages, pageId) {
+    return !!findPage(pages, pageId);
   }
 
-  function renderModeButtons(modes, activeMode) {
-    var container = byId("heater-modes");
+  function findPage(pages, pageId) {
     var i;
+    if (!pageId) {
+      return null;
+    }
+    for (i = 0; i < pages.length; i += 1) {
+      if (pages[i].id === pageId) {
+        return pages[i];
+      }
+    }
+    return null;
+  }
+
+  function renderPageTabs(pages, selectedPageId) {
+    var container = byId("page-tabs");
+    var i;
+    var page;
     var button;
-    var mode;
 
     if (!container) {
       return;
@@ -279,37 +303,37 @@
 
     container.innerHTML = "";
 
-    if (!modes || !modes.length) {
+    if (!pages || pages.length <= 1) {
+      container.style.display = "none";
       return;
     }
 
-    for (i = 0; i < modes.length; i += 1) {
-      mode = modes[i];
+    container.style.display = "flex";
+
+    for (i = 0; i < pages.length; i += 1) {
+      page = pages[i];
       button = document.createElement("button");
       button.type = "button";
-      button.className = mode === activeMode ? "mode-active" : "";
-      button.appendChild(document.createTextNode(humanize(mode)));
-      attachModeHandler(button, mode);
+      button.className = "page-tab" + (page.id === selectedPageId ? " active" : "");
+      button.appendChild(document.createTextNode(page.title));
+      attachPageHandler(button, page.id);
       container.appendChild(button);
     }
   }
 
-  function attachModeHandler(button, mode) {
+  function attachPageHandler(button, pageId) {
     button.onclick = function () {
-      sendAction(
-        "POST",
-        "/api/actions/heater/mode",
-        { mode: mode },
-        "Mode changed to " + humanize(mode) + "."
-      );
+      activePageId = pageId;
+      saveActivePageId(pageId);
+      if (dashboardData) {
+        renderDashboard(dashboardData);
+      }
     };
   }
 
-  function renderSceneButtons(scenes) {
-    var container = byId("scene-buttons");
+  function renderPage(page) {
+    var container = byId("panels");
     var i;
-    var scene;
-    var button;
 
     if (!container) {
       return;
@@ -317,38 +341,165 @@
 
     container.innerHTML = "";
 
-    if (!scenes || !scenes.length) {
-      button = document.createElement("button");
-      button.type = "button";
-      button.disabled = true;
-      button.appendChild(document.createTextNode("No scenes configured"));
-      container.appendChild(button);
+    if (!page || !page.widgets || !page.widgets.length) {
+      container.appendChild(buildEmptyState());
       return;
     }
 
-    for (i = 0; i < scenes.length; i += 1) {
-      scene = scenes[i];
-      button = document.createElement("button");
-      button.type = "button";
-      button.disabled = !scene.available;
-      button.appendChild(document.createTextNode(scene.name));
-      attachSceneHandler(button, scene.id, scene.available);
-      container.appendChild(button);
+    for (i = 0; i < page.widgets.length; i += 1) {
+      container.appendChild(buildWidget(page.widgets[i]));
     }
   }
 
-  function attachSceneHandler(button, sceneId, available) {
-    if (!available) {
-      return;
+  function buildEmptyState() {
+    var panel = document.createElement("section");
+    var title = document.createElement("h2");
+    var subtitle = document.createElement("div");
+
+    panel.className = "panel panel-wide";
+    title.appendChild(document.createTextNode("No widgets configured"));
+    subtitle.className = "muted";
+    subtitle.appendChild(document.createTextNode("Add widgets to this page in dashboard.yaml."));
+
+    panel.appendChild(title);
+    panel.appendChild(subtitle);
+    return panel;
+  }
+
+  function buildWidget(widget) {
+    var panel = document.createElement("section");
+    var title = document.createElement("h2");
+    var primary;
+    var secondary;
+    var rowContainer;
+    var actionsContainer;
+    var i;
+
+    panel.className = "panel" + (widget.wide ? " panel-wide" : "");
+
+    title.appendChild(document.createTextNode(widget.title || "Widget"));
+    panel.appendChild(title);
+
+    if (widget.primary_text !== null && typeof widget.primary_text !== "undefined") {
+      primary = document.createElement("div");
+      primary.className = "big-value";
+      primary.appendChild(document.createTextNode(widget.primary_text || "--"));
+      panel.appendChild(primary);
     }
 
+    if (widget.secondary_text) {
+      secondary = document.createElement("div");
+      secondary.className = "muted";
+      secondary.appendChild(document.createTextNode(widget.secondary_text));
+      panel.appendChild(secondary);
+    }
+
+    if (widget.rows && widget.rows.length) {
+      rowContainer = document.createElement("div");
+      for (i = 0; i < widget.rows.length; i += 1) {
+        rowContainer.appendChild(buildRow(widget.rows[i]));
+      }
+      panel.appendChild(rowContainer);
+    }
+
+    if (widget.actions && widget.actions.length) {
+      actionsContainer = document.createElement("div");
+      actionsContainer.className = "controls";
+      actionsContainer.appendChild(buildActionRow(widget.actions));
+      panel.appendChild(actionsContainer);
+    }
+
+    return panel;
+  }
+
+  function buildRow(rowData) {
+    var row = document.createElement("div");
+    var label = document.createElement("div");
+    var value = document.createElement("div");
+
+    row.className = "row";
+    label.className = "label";
+    value.className = "value" + (!rowData.available ? " value-muted" : "");
+
+    label.appendChild(document.createTextNode(rowData.label));
+    value.appendChild(document.createTextNode(rowData.value || "--"));
+
+    row.appendChild(label);
+    row.appendChild(value);
+    return row;
+  }
+
+  function buildActionRow(actions) {
+    var container = document.createElement("div");
+    var i;
+
+    container.className = "button-row";
+
+    for (i = 0; i < actions.length; i += 1) {
+      container.appendChild(buildActionButton(actions[i]));
+    }
+
+    return container;
+  }
+
+  function buildActionButton(action) {
+    var button = document.createElement("button");
+
+    button.type = "button";
+    button.disabled = !!action.disabled;
+    button.className = resolveActionClass(action);
+    button.appendChild(document.createTextNode(action.label));
+
+    if (!action.disabled) {
+      attachActionHandler(button, action);
+    }
+
+    return button;
+  }
+
+  function resolveActionClass(action) {
+    if (action.active) {
+      return "mode-active";
+    }
+    if (action.variant === "primary") {
+      return "primary";
+    }
+    if (action.variant === "success") {
+      return "mode-active";
+    }
+    return "";
+  }
+
+  function attachActionHandler(button, action) {
     button.onclick = function () {
-      sendAction(
-        "POST",
-        "/api/actions/scene/" + encodeURIComponent(sceneId),
-        null,
-        "Scene " + humanize(sceneId) + " triggered."
-      );
+      if (action.action === "scene") {
+        sendAction(
+          "POST",
+          "/api/actions/scene/" + encodeURIComponent(action.scene_id),
+          null,
+          "Scene " + humanize(action.scene_id) + " triggered."
+        );
+        return;
+      }
+
+      if (action.action === "heater_toggle") {
+        sendAction(
+          "POST",
+          "/api/actions/heater/toggle",
+          { widget_id: action.widget_id },
+          "Heater updated."
+        );
+        return;
+      }
+
+      if (action.action === "heater_mode") {
+        sendAction(
+          "POST",
+          "/api/actions/heater/mode",
+          { widget_id: action.widget_id, mode: action.mode },
+          "Mode changed to " + humanize(action.mode) + "."
+        );
+      }
     };
   }
 
@@ -375,8 +526,7 @@
       buttons[i].disabled = disabled || buttons[i].disabled;
     }
     if (!disabled && dashboardData) {
-      renderHeater(dashboardData.heater);
-      renderSceneButtons(dashboardData.scenes || []);
+      renderDashboard(dashboardData);
     }
   }
 
@@ -397,20 +547,6 @@
     return padNumber(date.getHours()) + ":" + padNumber(date.getMinutes());
   }
 
-  function formatTemperature(value, unit) {
-    if (value === null || typeof value === "undefined") {
-      return "--";
-    }
-    return trimZero(Number(value)) + (unit || "");
-  }
-
-  function trimZero(value) {
-    if (Math.round(value) === value) {
-      return String(value);
-    }
-    return String(Math.round(value * 10) / 10);
-  }
-
   function humanize(value) {
     var parts;
     var i;
@@ -429,6 +565,25 @@
       parts[i] = item.charAt(0).toUpperCase() + item.substr(1);
     }
     return parts.join(" ");
+  }
+
+  function saveActivePageId(pageId) {
+    if (!pageId) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, pageId);
+    } catch (error) {
+      return;
+    }
+  }
+
+  function loadSavedPageId() {
+    try {
+      return window.localStorage.getItem(ACTIVE_PAGE_STORAGE_KEY);
+    } catch (error) {
+      return null;
+    }
   }
 
   function boot() {

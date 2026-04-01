@@ -8,7 +8,9 @@ Lightweight wall dashboard built with FastAPI and plain HTML/CSS/JavaScript for 
 - Very lightweight frontend with no build step and no framework
 - Home Assistant token stays on the backend
 - Simple in-memory caching with 5 second TTL and stale fallback
+- Dashboard pages and widgets configured through `dashboard.yaml`
 - Heater controls and scene triggers routed through the backend
+- Config changes are picked up without rebuilding the container
 
 ## Project Layout
 
@@ -40,6 +42,7 @@ app/
     index.html
     styles.css
     app.js
+dashboard.yaml
 requirements.txt
 Dockerfile
 docker-compose.yml
@@ -62,20 +65,61 @@ Environment variables:
 APP_PORT=8080
 HA_BASE_URL=
 HA_TOKEN=
-HA_WEATHER_ENTITY=
-HA_INDOOR_TEMP_ENTITY=
-HA_OUTDOOR_TEMP_ENTITY=
-HA_HEATER_ENTITY=
-HA_SCENE_MORNING=
-HA_SCENE_NIGHT=
-HA_SCENE_AWAY=
+# Optional; defaults to ./dashboard.yaml
+DASHBOARD_CONFIG_PATH=./dashboard.yaml
 ```
+
+Dashboard layout lives in `dashboard.yaml`. It defines pages and widgets:
+
+```yaml
+default_page: home
+
+pages:
+  - id: home
+    title: "1"
+    widgets:
+      - id: weather
+        type: weather
+        title: Weather
+        weather_entity: weather.home
+        rows:
+          - label: Indoor
+            entity: sensor.living_room_temperature
+          - label: Humidity
+            entity: sensor.living_room_humidity
+          - label: CO2
+            entity: sensor.living_room_co2
+
+      - id: scenes
+        type: scenes
+        title: Scenes
+        wide: true
+        scenes:
+          - id: morning
+            name: Morning
+            entity: scene.morning
+
+  - id: climate
+    title: "2"
+    widgets:
+      - id: heater
+        type: heater
+        title: Heater
+        entity: climate.living_room
+```
+
+Supported widget types:
+
+- `weather`: main weather entity plus extra sensor rows
+- `sensor`: one large sensor value plus optional rows
+- `heater`: toggle + mode buttons for a climate/select/water_heater entity
+- `scenes`: one or more scene buttons
 
 ### Home Assistant Setup
 
 1. Create a long-lived access token in Home Assistant.
-2. Find the entity IDs for your weather, indoor temperature, outdoor temperature, heater, and scenes.
-3. Put those values into `.env`.
+2. Put your Home Assistant URL and token into `.env`.
+3. Put entity IDs and page/widget layout into `dashboard.yaml`.
 4. Make sure this app can reach your Home Assistant URL from the machine that runs it.
 
 ## Run Locally
@@ -97,6 +141,8 @@ uv run uvicorn app.main:app --reload --host 0.0.0.0 --port "${APP_PORT:-8080}"
 
 Open the dashboard at [http://localhost:8080](http://localhost:8080) by default, or use your `APP_PORT` value.
 
+When you edit `dashboard.yaml`, the backend reloads it automatically on the next poll and the frontend refreshes itself when the config version changes.
+
 Run quality checks:
 
 ```bash
@@ -111,6 +157,8 @@ cp .env.example .env
 docker compose up --build
 ```
 
+After the first build, editing `dashboard.yaml` does not require rebuilding the container. The file is bind-mounted into the container and reloaded automatically.
+
 Then open [http://localhost:8080](http://localhost:8080) by default, or use your `APP_PORT` value.
 
 ## API Endpoints
@@ -124,9 +172,10 @@ Then open [http://localhost:8080](http://localhost:8080) by default, or use your
 ## Notes
 
 - The frontend polls `/api/dashboard` every 15 seconds.
-- The frontend also performs a full page reload every 30 minutes and reloads after 10 seconds if the dashboard API is unavailable.
+- The frontend performs a full page reload every 30 minutes, reloads after 10 seconds if the dashboard API is unavailable, and reloads when the YAML config version changes.
 - The clock is updated locally in the browser every second.
-- Missing entities are handled gracefully and shown as unavailable.
+- Missing or unavailable entities are shown as unavailable per widget.
+- If `dashboard.yaml` becomes invalid, the last good config stays active and the UI shows the config error.
 - On Home Assistant request failures, the backend returns the last known cached value when possible.
 - `requirements.txt` is included for compatibility, and `uv` is the recommended workflow for local development.
 

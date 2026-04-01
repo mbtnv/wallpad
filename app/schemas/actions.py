@@ -5,7 +5,11 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
-class HeaterModeRequest(BaseModel):
+class HeaterActionRequest(BaseModel):
+    widget_id: str | None = None
+
+
+class HeaterModeRequest(HeaterActionRequest):
     mode: str = Field(min_length=1)
 
 

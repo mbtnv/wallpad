@@ -9,17 +9,18 @@ from app.core.errors import (
     UpstreamError,
 )
 from app.core.orchestrator import DashboardOrchestrator, get_dashboard_orchestrator
-from app.schemas.actions import ActionResponse, HeaterModeRequest
+from app.schemas.actions import ActionResponse, HeaterActionRequest, HeaterModeRequest
 
 router = APIRouter(prefix="/api/actions", tags=["actions"])
 
 
 @router.post("/heater/toggle", response_model=ActionResponse)
 async def toggle_heater(
+    request: HeaterActionRequest | None = None,
     orchestrator: DashboardOrchestrator = Depends(get_dashboard_orchestrator),
 ) -> ActionResponse:
     try:
-        result = await orchestrator.toggle_heater()
+        result = await orchestrator.toggle_heater(request.widget_id if request else None)
     except (ConfigurationError, ProviderNotRegisteredError) as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ActionError as exc:
@@ -36,7 +37,7 @@ async def set_heater_mode(
     orchestrator: DashboardOrchestrator = Depends(get_dashboard_orchestrator),
 ) -> ActionResponse:
     try:
-        result = await orchestrator.set_heater_mode(request.mode)
+        result = await orchestrator.set_heater_mode(request.mode, request.widget_id)
     except (ConfigurationError, ProviderNotRegisteredError) as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ActionError as exc:

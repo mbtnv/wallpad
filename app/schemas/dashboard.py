@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class ClockData(BaseModel):
@@ -10,39 +12,39 @@ class ClockData(BaseModel):
     weekday: str
 
 
-class WeatherData(BaseModel):
+class WidgetRowData(BaseModel):
+    label: str
+    value: str = "--"
     available: bool = False
-    condition: str | None = None
-    temperature: float | None = None
-    temperature_unit: str | None = None
-    humidity: float | None = None
-    wind_speed: float | None = None
-    wind_speed_unit: str | None = None
-    friendly_name: str | None = None
 
 
-class HomeData(BaseModel):
-    indoor_temperature: float | None = None
-    indoor_temperature_unit: str | None = None
-    outdoor_temperature: float | None = None
-    outdoor_temperature_unit: str | None = None
-
-
-class HeaterData(BaseModel):
-    available: bool = False
-    entity_id: str | None = None
-    state: str | None = None
-    is_on: bool = False
+class WidgetActionData(BaseModel):
+    action: Literal["heater_toggle", "heater_mode", "scene"]
+    label: str
+    widget_id: str | None = None
+    scene_id: str | None = None
     mode: str | None = None
-    supported_modes: list[str] = Field(default_factory=list)
-    friendly_name: str | None = None
+    disabled: bool = False
+    active: bool = False
+    variant: Literal["default", "primary", "success"] = "default"
 
 
-class SceneData(BaseModel):
+class DashboardWidgetData(BaseModel):
     id: str
-    name: str
-    entity_id: str | None = None
+    type: Literal["weather", "sensor", "heater", "scenes"]
+    title: str
+    wide: bool = False
     available: bool = False
+    primary_text: str | None = None
+    secondary_text: str | None = None
+    rows: list[WidgetRowData] = Field(default_factory=list)
+    actions: list[WidgetActionData] = Field(default_factory=list)
+
+
+class DashboardPageData(BaseModel):
+    id: str
+    title: str
+    widgets: list[DashboardWidgetData] = Field(default_factory=list)
 
 
 class ProviderStatus(BaseModel):
@@ -50,12 +52,10 @@ class ProviderStatus(BaseModel):
 
 
 class DashboardResponse(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
     generated_at: str
     clock: ClockData
-    weather: WeatherData = Field(default_factory=WeatherData)
-    home: HomeData = Field(default_factory=HomeData)
-    heater: HeaterData = Field(default_factory=HeaterData)
-    scenes: list[SceneData] = Field(default_factory=list)
+    config_version: str | None = None
+    config_error: str | None = None
+    default_page: str | None = None
+    pages: list[DashboardPageData] = Field(default_factory=list)
     providers: dict[str, ProviderStatus] = Field(default_factory=dict)

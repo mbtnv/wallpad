@@ -1,0 +1,30 @@
+default_page: home
+
+pages:
+  - id: home
+    title: "1"
+    widgets:
+      - id: weather
+        type: weather
+        title: Weather
+        weather_entity: weather.forecast_home
+        rows:
+          - label: Indoor
+            entity: sensor.air_temp
+          - label: Humidity
+            entity: sensor.air_hum
+          - label: CO2
+            entity: sensor.air_co2
+
+  - id: air
+    title: "2"
+    widgets:
+      - id: air_quality
+        type: sensor
+        title: Air Quality
+        entity: sensor.air_co2
+        rows:
+          - label: Temperature
+            entity: sensor.air_temp
+          - label: Humidity
+            entity: sensor.air_hum

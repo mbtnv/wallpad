@@ -4,6 +4,8 @@ services:
     container_name: wall-dashboard
     env_file:
       - .env
+    volumes:
+      - ./dashboard.yaml:/app/dashboard.yaml:ro
     ports:
       - "${APP_PORT:-8080}:${APP_PORT:-8080}"
     restart: unless-stopped

@@ -51,6 +51,37 @@ body {
   color: #ffe3e6;
 }
 
+.page-tabs {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+  flex-wrap: wrap;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.page-tab {
+  -webkit-box-flex: 0;
+  -webkit-flex: 0 0 auto;
+  flex: 0 0 auto;
+  min-width: 88px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: #1a2432;
+  border: 1px solid #2d3a4f;
+  color: #c8d4e2;
+  font-size: 20px;
+}
+
+.page-tab.active {
+  background: #2f7bd6;
+  color: #ffffff;
+}
+
 .panels {
   display: -webkit-box;
   display: -webkit-flex;
@@ -120,6 +151,10 @@ body {
   font-size: 24px;
   font-weight: 500;
   text-align: right;
+}
+
+.value-muted {
+  color: #90a0b5;
 }
 
 .controls {

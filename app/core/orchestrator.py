@@ -9,15 +9,9 @@ from app.config import get_settings
 from app.core.errors import ProviderNotRegisteredError
 from app.core.provider_base import BaseProvider, ProviderExecutionResult, ProviderPayload
 from app.providers.home_assistant import HomeAssistantProvider
-from app.schemas.dashboard import (
-    ClockData,
-    DashboardResponse,
-    HeaterData,
-    HomeData,
-    ProviderStatus,
-    WeatherData,
-)
+from app.schemas.dashboard import ClockData, DashboardResponse, ProviderStatus
 from app.services.cache import get_cache
+from app.services.dashboard_config import get_dashboard_config_store
 from app.services.home_assistant import get_home_assistant_service
 
 TProvider = TypeVar("TProvider", bound=BaseProvider)
@@ -63,13 +57,13 @@ class DashboardOrchestrator:
 
         return dashboard
 
-    async def toggle_heater(self) -> ProviderPayload:
+    async def toggle_heater(self, widget_id: str | None = None) -> ProviderPayload:
         provider = self.get_provider("home_assistant", HomeAssistantProvider)
-        return await provider.toggle_heater()
+        return await provider.toggle_heater(widget_id)
 
-    async def set_heater_mode(self, mode: str) -> ProviderPayload:
+    async def set_heater_mode(self, mode: str, widget_id: str | None = None) -> ProviderPayload:
         provider = self.get_provider("home_assistant", HomeAssistantProvider)
-        return await provider.set_heater_mode(mode)
+        return await provider.set_heater_mode(mode, widget_id)
 
     async def trigger_scene(self, scene_id: str) -> ProviderPayload:
         provider = self.get_provider("home_assistant", HomeAssistantProvider)
@@ -108,10 +102,10 @@ class DashboardOrchestrator:
         return DashboardResponse(
             generated_at=now.isoformat(),
             clock=self._build_clock(now),
-            weather=WeatherData(),
-            home=HomeData(),
-            heater=HeaterData(),
-            scenes=[],
+            config_version=None,
+            config_error=None,
+            default_page=None,
+            pages=[],
             providers={},
         ).model_dump()
 
@@ -155,12 +149,14 @@ def get_dashboard_orchestrator() -> DashboardOrchestrator:
     cache = get_cache()
     settings = get_settings()
     home_assistant_service = get_home_assistant_service()
+    config_store = get_dashboard_config_store()
 
     orchestrator.register_provider(
         HomeAssistantProvider(
             settings=settings,
             service=home_assistant_service,
             cache=cache,
+            config_store=config_store,
         )
     )
     return orchestrator
