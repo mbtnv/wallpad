@@ -1,0 +1,25 @@
+[project]
+name = "wall-dashboard"
+version = "0.1.0"
+description = "Lightweight wall dashboard for an older iPad"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+  "fastapi>=0.115,<1.0",
+  "httpx>=0.28,<1.0",
+  "pydantic>=2.10,<3.0",
+  "uvicorn>=0.34,<1.0",
+]
+
+[dependency-groups]
+dev = [
+  "ruff>=0.12,<1.0",
+  "ty>=0.0.1a16",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

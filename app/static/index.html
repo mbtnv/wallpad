@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Wall Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <div class="app">
+      <header class="hero">
+        <div id="clock-time" class="clock-time">--:--</div>
+        <div id="clock-date" class="clock-date">Loading date...</div>
+      </header>
+
+      <div id="status-bar" class="status" style="display: none;"></div>
+
+      <div class="panels">
+        <section class="panel">
+          <h2>Weather</h2>
+          <div id="weather-temp" class="big-value">--</div>
+          <div id="weather-condition" class="muted">Waiting for data...</div>
+          <div class="row">
+            <div class="label">Indoor</div>
+            <div id="indoor-temp" class="value">--</div>
+          </div>
+          <div class="row">
+            <div class="label">Outdoor</div>
+            <div id="outdoor-temp" class="value">--</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Heater</h2>
+          <div id="heater-state" class="big-value">--</div>
+          <div id="heater-mode" class="muted">Waiting for data...</div>
+
+          <div class="controls">
+            <div class="button-row">
+              <button id="heater-toggle" class="primary" type="button">Toggle</button>
+            </div>
+            <div id="heater-modes" class="button-row"></div>
+          </div>
+        </section>
+
+        <section class="panel panel-wide">
+          <h2>Scenes</h2>
+          <div id="scene-buttons" class="button-row"></div>
+        </section>
+      </div>
+
+      <footer class="footer">
+        <span id="last-updated">Waiting for first refresh...</span>
+      </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+  </html>

@@ -1,0 +1,9 @@
+services:
+  wall-dashboard:
+    build: .
+    container_name: wall-dashboard
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
