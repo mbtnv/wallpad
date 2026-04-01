@@ -81,11 +81,22 @@ pages:
       - id: weather
         type: weather
         title: Weather
-        weather_entity: weather.home
+        weather_entity: weather.yandex_pogoda
+        forecast:
+          title: Hourly Forecast
+          hours: 6
+          primary: temperature
+          secondary: precipitation_probability
         rows:
+          - label: Feels Like
+            attribute: apparent_temperature
+          - label: Wind
+            attribute: wind_speed
+          - label: Humidity
+            attribute: humidity
           - label: Indoor
             entity: sensor.living_room_temperature
-          - label: Humidity
+          - label: Indoor Humidity
             entity: sensor.living_room_humidity
           - label: CO2
             entity: sensor.living_room_co2
@@ -110,10 +121,32 @@ pages:
 
 Supported widget types:
 
-- `weather`: main weather entity plus extra sensor rows
+- `weather`: main weather entity, YAML-configured weather attributes, optional hourly forecast, plus extra sensor rows
 - `sensor`: one large sensor value plus optional rows
 - `heater`: toggle + mode buttons for a climate/select/water_heater entity
 - `scenes`: one or more scene buttons
+
+Weather widget rows can read either another entity or an attribute from the configured weather entity:
+
+```yaml
+rows:
+  - label: Feels Like
+    attribute: apparent_temperature
+  - label: Outdoor Humidity
+    attribute: humidity
+  - label: Indoor
+    entity: sensor.living_room_temperature
+```
+
+Hourly forecast is optional and is also configured in YAML:
+
+```yaml
+forecast:
+  title: Hourly Forecast
+  hours: 6
+  primary: temperature
+  secondary: precipitation_probability
+```
 
 ### Home Assistant Setup
 

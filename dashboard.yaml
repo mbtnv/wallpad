@@ -7,11 +7,22 @@ pages:
       - id: weather
         type: weather
         title: Weather
-        weather_entity: weather.forecast_home
+        weather_entity: weather.yandex_pogoda
+        forecast:
+          title: Hourly Forecast
+          hours: 6
+          primary: temperature
+          secondary: precipitation_probability
         rows:
+          - label: Feels Like
+            attribute: apparent_temperature
+          - label: Wind
+            attribute: wind_speed
+          - label: Humidity
+            attribute: humidity
           - label: Indoor
             entity: sensor.air_temp
-          - label: Humidity
+          - label: Indoor Humidity
             entity: sensor.air_hum
           - label: CO2
             entity: sensor.air_co2

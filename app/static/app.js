@@ -372,6 +372,7 @@
     var primary;
     var secondary;
     var rowContainer;
+    var forecastContainer;
     var actionsContainer;
     var i;
 
@@ -400,6 +401,11 @@
         rowContainer.appendChild(buildRow(widget.rows[i]));
       }
       panel.appendChild(rowContainer);
+    }
+
+    if (widget.forecast && widget.forecast.length) {
+      forecastContainer = buildForecast(widget.forecast_title, widget.forecast);
+      panel.appendChild(forecastContainer);
     }
 
     if (widget.actions && widget.actions.length) {
@@ -440,6 +446,56 @@
     }
 
     return container;
+  }
+
+  function buildForecast(title, items) {
+    var container = document.createElement("div");
+    var heading;
+    var grid = document.createElement("div");
+    var i;
+
+    container.className = "weather-forecast";
+
+    if (title) {
+      heading = document.createElement("div");
+      heading.className = "section-label";
+      heading.appendChild(document.createTextNode(title));
+      container.appendChild(heading);
+    }
+
+    grid.className = "forecast-grid";
+    for (i = 0; i < items.length; i += 1) {
+      grid.appendChild(buildForecastCard(items[i]));
+    }
+
+    container.appendChild(grid);
+    return container;
+  }
+
+  function buildForecastCard(item) {
+    var card = document.createElement("div");
+    var time = document.createElement("div");
+    var primary = document.createElement("div");
+    var secondary;
+
+    card.className = "forecast-card" + (!item.available ? " forecast-card-muted" : "");
+
+    time.className = "forecast-time";
+    time.appendChild(document.createTextNode(item.time || "--"));
+    card.appendChild(time);
+
+    primary.className = "forecast-primary";
+    primary.appendChild(document.createTextNode(item.primary_text || "--"));
+    card.appendChild(primary);
+
+    if (item.secondary_text) {
+      secondary = document.createElement("div");
+      secondary.className = "forecast-secondary";
+      secondary.appendChild(document.createTextNode(item.secondary_text));
+      card.appendChild(secondary);
+    }
+
+    return card;
   }
 
   function buildActionButton(action) {

@@ -29,6 +29,13 @@ class WidgetActionData(BaseModel):
     variant: Literal["default", "primary", "success"] = "default"
 
 
+class WeatherForecastEntryData(BaseModel):
+    time: str = "--"
+    primary_text: str = "--"
+    secondary_text: str | None = None
+    available: bool = False
+
+
 class DashboardWidgetData(BaseModel):
     id: str
     type: Literal["weather", "sensor", "heater", "scenes"]
@@ -38,6 +45,8 @@ class DashboardWidgetData(BaseModel):
     primary_text: str | None = None
     secondary_text: str | None = None
     rows: list[WidgetRowData] = Field(default_factory=list)
+    forecast_title: str | None = None
+    forecast: list[WeatherForecastEntryData] = Field(default_factory=list)
     actions: list[WidgetActionData] = Field(default_factory=list)
 
 

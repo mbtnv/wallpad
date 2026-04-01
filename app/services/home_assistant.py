@@ -55,6 +55,57 @@ class HomeAssistantService:
             ttl_seconds=self.settings.ha_cache_ttl_seconds,
         )
 
+    async def get_weather_forecast(
+        self,
+        entity_id: str | None,
+        forecast_type: str = "hourly",
+    ) -> list[dict[str, Any]] | None:
+        if not entity_id or not self.settings.home_assistant_enabled:
+            return None
+
+        async def load_forecast() -> list[dict[str, Any]] | None:
+            try:
+                response = await self._client.post(
+                    "/api/services/weather/get_forecasts?return_response",
+                    json={"entity_id": entity_id, "type": forecast_type},
+                )
+            except httpx.HTTPError as exc:
+                raise UpstreamError("Failed to contact Home Assistant.") from exc
+
+            if response.status_code == 404:
+                return None
+
+            if response.is_error:
+                raise UpstreamError(
+                    f"Home Assistant returned status {response.status_code} for {entity_id} "
+                    f"forecast."
+                )
+
+            payload = response.json()
+            if not isinstance(payload, dict):
+                return None
+
+            service_response = payload.get("service_response")
+            if not isinstance(service_response, dict):
+                return None
+
+            entity_payload = service_response.get(entity_id)
+            if not isinstance(entity_payload, dict):
+                return None
+
+            forecast = entity_payload.get("forecast")
+            if not isinstance(forecast, list):
+                return None
+
+            return [item for item in forecast if isinstance(item, dict)]
+
+        return await self.cache.get_or_set_namespaced(
+            namespace="ha",
+            key=f"forecast:{forecast_type}:{entity_id}",
+            loader=load_forecast,
+            ttl_seconds=self.settings.ha_cache_ttl_seconds,
+        )
+
     async def call_service(
         self,
         domain: str,

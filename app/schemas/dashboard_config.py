@@ -11,6 +11,31 @@ class SensorRowConfig(BaseModel):
     entity: str
 
 
+class WeatherRowConfig(BaseModel):
+    label: str
+    entity: str | None = None
+    attribute: str | None = None
+    unit: str | None = None
+
+    @model_validator(mode="after")
+    def validate_source(self) -> WeatherRowConfig:
+        has_entity = bool(self.entity and self.entity.strip())
+        has_attribute = bool(self.attribute and self.attribute.strip())
+
+        if has_entity == has_attribute:
+            raise ValueError("Weather rows must define exactly one of 'entity' or 'attribute'.")
+
+        return self
+
+
+class WeatherForecastConfig(BaseModel):
+    type: Literal["hourly"] = "hourly"
+    title: str | None = None
+    hours: int = Field(default=6, ge=1, le=24)
+    primary: str = "temperature"
+    secondary: str | None = "condition"
+
+
 class SceneConfig(BaseModel):
     id: str
     name: str
@@ -27,7 +52,8 @@ class WidgetBaseConfig(BaseModel):
 class WeatherWidgetConfig(WidgetBaseConfig):
     type: Literal["weather"]
     weather_entity: str
-    rows: list[SensorRowConfig] = Field(default_factory=list)
+    rows: list[WeatherRowConfig] = Field(default_factory=list)
+    forecast: WeatherForecastConfig | None = None
 
 
 class SensorWidgetConfig(WidgetBaseConfig):

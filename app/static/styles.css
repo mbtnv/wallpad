@@ -161,6 +161,57 @@ body {
   margin-top: 18px;
 }
 
+.section-label {
+  margin-top: 18px;
+  margin-bottom: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #90a9c4;
+}
+
+.weather-forecast {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #273243;
+}
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.forecast-card {
+  padding: 14px 12px;
+  border-radius: 14px;
+  background: #121922;
+  border: 1px solid #233041;
+}
+
+.forecast-card-muted {
+  opacity: 0.55;
+}
+
+.forecast-time {
+  font-size: 18px;
+  color: #99abc1;
+}
+
+.forecast-primary {
+  margin-top: 8px;
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 600;
+}
+
+.forecast-secondary {
+  margin-top: 6px;
+  font-size: 18px;
+  color: #c3cedc;
+}
+
 .button-row {
   display: -webkit-box;
   display: -webkit-flex;
@@ -227,9 +278,16 @@ button:disabled {
   .muted,
   .label,
   .value,
+  .forecast-time,
+  .forecast-secondary,
+  .section-label,
   button,
   .footer,
   .status {
     font-size: 20px;
+  }
+
+  .forecast-primary {
+    font-size: 24px;
   }
 }
