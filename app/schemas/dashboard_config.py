@@ -11,6 +11,12 @@ class SensorRowConfig(BaseModel):
     entity: str
 
 
+class SensorHistoryConfig(BaseModel):
+    title: str | None = None
+    hours: int = Field(default=24, ge=1, le=168)
+    points: int = Field(default=48, ge=2, le=240)
+
+
 class WeatherRowConfig(BaseModel):
     label: str
     entity: str | None = None
@@ -60,6 +66,7 @@ class SensorWidgetConfig(WidgetBaseConfig):
     type: Literal["sensor"]
     entity: str
     subtitle: str | None = None
+    history: SensorHistoryConfig | None = None
     rows: list[SensorRowConfig] = Field(default_factory=list)
 
 

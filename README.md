@@ -122,7 +122,7 @@ pages:
 Supported widget types:
 
 - `weather`: main weather entity, YAML-configured weather attributes, optional hourly forecast, plus extra sensor rows
-- `sensor`: one large sensor value plus optional rows
+- `sensor`: one large sensor value, optional history line chart, plus optional rows
 - `heater`: toggle + mode buttons for a climate/select/water_heater entity
 - `scenes`: one or more scene buttons
 
@@ -146,6 +146,24 @@ forecast:
   hours: 6
   primary: temperature
   secondary: precipitation_probability
+```
+
+Sensor history charts are optional and render a compact line graph from Home Assistant history:
+
+```yaml
+- id: air_quality
+  type: sensor
+  title: Air Quality
+  entity: sensor.living_room_co2
+  history:
+    title: CO2 History
+    hours: 24
+    points: 48
+  rows:
+    - label: Temperature
+      entity: sensor.living_room_temperature
+    - label: Humidity
+      entity: sensor.living_room_humidity
 ```
 
 ### Home Assistant Setup

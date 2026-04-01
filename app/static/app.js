@@ -371,6 +371,7 @@
     var title = document.createElement("h2");
     var primary;
     var secondary;
+    var historyContainer;
     var rowContainer;
     var forecastContainer;
     var actionsContainer;
@@ -393,6 +394,13 @@
       secondary.className = "muted";
       secondary.appendChild(document.createTextNode(widget.secondary_text));
       panel.appendChild(secondary);
+    }
+
+    if (widget.history && widget.history.points && widget.history.points.length > 1) {
+      historyContainer = buildSensorHistory(widget.history);
+      if (historyContainer) {
+        panel.appendChild(historyContainer);
+      }
     }
 
     if (widget.rows && widget.rows.length) {
@@ -470,6 +478,183 @@
 
     container.appendChild(grid);
     return container;
+  }
+
+  function buildSensorHistory(history) {
+    var container;
+    var heading;
+    var stats;
+    var labels;
+    var startLabel;
+    var endLabel;
+
+    if (!history || !history.points || history.points.length < 2) {
+      return null;
+    }
+
+    container = document.createElement("div");
+    container.className = "sensor-history";
+
+    if (history.title) {
+      heading = document.createElement("div");
+      heading.className = "section-label";
+      heading.appendChild(document.createTextNode(history.title));
+      container.appendChild(heading);
+    }
+
+    container.appendChild(buildSensorHistoryChart(history.points));
+
+    if (history.min_label || history.max_label) {
+      stats = document.createElement("div");
+      stats.className = "sensor-history-stats";
+
+      if (history.min_label) {
+        stats.appendChild(buildSensorHistoryStat("Min", history.min_label));
+      }
+
+      if (history.max_label) {
+        stats.appendChild(buildSensorHistoryStat("Max", history.max_label));
+      }
+
+      container.appendChild(stats);
+    }
+
+    if (history.start_label || history.end_label) {
+      labels = document.createElement("div");
+      labels.className = "sensor-history-labels";
+
+      startLabel = document.createElement("div");
+      startLabel.appendChild(document.createTextNode(history.start_label || "--"));
+      labels.appendChild(startLabel);
+
+      endLabel = document.createElement("div");
+      endLabel.appendChild(document.createTextNode(history.end_label || "--"));
+      labels.appendChild(endLabel);
+
+      container.appendChild(labels);
+    }
+
+    return container;
+  }
+
+  function buildSensorHistoryStat(label, value) {
+    var item = document.createElement("div");
+    var labelNode = document.createElement("span");
+    var valueNode = document.createElement("span");
+
+    item.className = "sensor-history-stat";
+
+    labelNode.className = "sensor-history-stat-label";
+    labelNode.appendChild(document.createTextNode(label + " "));
+    item.appendChild(labelNode);
+
+    valueNode.className = "sensor-history-stat-value";
+    valueNode.appendChild(document.createTextNode(value));
+    item.appendChild(valueNode);
+
+    return item;
+  }
+
+  function buildSensorHistoryChart(points) {
+    var SVG_NS = "http://www.w3.org/2000/svg";
+    var chart = document.createElement("div");
+    var svg = document.createElementNS(SVG_NS, "svg");
+    var width = 100;
+    var height = 44;
+    var padding = 3;
+    var contentWidth = width - padding * 2;
+    var contentHeight = height - padding * 2;
+    var values = [];
+    var minValue = null;
+    var maxValue = null;
+    var i;
+    var value;
+    var range;
+    var pointCount;
+    var linePath = "";
+    var areaPath = "";
+    var x;
+    var y;
+    var normalized;
+    var guide;
+    var line;
+    var area;
+
+    chart.className = "sensor-history-chart";
+
+    for (i = 0; i < points.length; i += 1) {
+      value = parseFloat(points[i].value);
+      if (isNaN(value)) {
+        continue;
+      }
+      values.push(value);
+      if (minValue === null || value < minValue) {
+        minValue = value;
+      }
+      if (maxValue === null || value > maxValue) {
+        maxValue = value;
+      }
+    }
+
+    if (values.length < 2 || minValue === null || maxValue === null) {
+      return chart;
+    }
+
+    range = maxValue - minValue;
+    pointCount = values.length;
+
+    svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.setAttribute("aria-hidden", "true");
+
+    for (i = 1; i <= 3; i += 1) {
+      guide = document.createElementNS(SVG_NS, "line");
+      y = padding + contentHeight * (i / 4);
+      guide.setAttribute("x1", padding);
+      guide.setAttribute("y1", y);
+      guide.setAttribute("x2", width - padding);
+      guide.setAttribute("y2", y);
+      guide.setAttribute("class", "sensor-history-guide");
+      svg.appendChild(guide);
+    }
+
+    for (i = 0; i < pointCount; i += 1) {
+      x = padding + (contentWidth * i) / (pointCount - 1);
+      normalized = range === 0 ? 0.5 : (values[i] - minValue) / range;
+      y = height - padding - normalized * contentHeight;
+
+      if (i === 0) {
+        linePath = "M " + x.toFixed(2) + " " + y.toFixed(2);
+        areaPath = linePath;
+      } else {
+        linePath += " L " + x.toFixed(2) + " " + y.toFixed(2);
+        areaPath += " L " + x.toFixed(2) + " " + y.toFixed(2);
+      }
+    }
+
+    areaPath +=
+      " L " +
+      (width - padding).toFixed(2) +
+      " " +
+      (height - padding).toFixed(2) +
+      " L " +
+      padding.toFixed(2) +
+      " " +
+      (height - padding).toFixed(2) +
+      " Z";
+
+    area = document.createElementNS(SVG_NS, "path");
+    area.setAttribute("d", areaPath);
+    area.setAttribute("class", "sensor-history-area");
+    svg.appendChild(area);
+
+    line = document.createElementNS(SVG_NS, "path");
+    line.setAttribute("d", linePath);
+    line.setAttribute("class", "sensor-history-line");
+    svg.appendChild(line);
+
+    chart.appendChild(svg);
+    return chart;
   }
 
   function buildForecastCard(item) {

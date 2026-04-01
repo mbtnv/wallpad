@@ -177,6 +177,83 @@ body {
   border-top: 1px solid #273243;
 }
 
+.sensor-history {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #273243;
+}
+
+.sensor-history-chart {
+  margin-top: 10px;
+  height: 144px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(34, 49, 69, 0.92), rgba(18, 25, 34, 0.88));
+  border: 1px solid #233041;
+  overflow: hidden;
+}
+
+.sensor-history-chart svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sensor-history-guide {
+  stroke: rgba(148, 170, 196, 0.24);
+  stroke-width: 0.6;
+}
+
+.sensor-history-area {
+  fill: rgba(88, 150, 255, 0.18);
+}
+
+.sensor-history-line {
+  fill: none;
+  stroke: #70acff;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sensor-history-stats {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  color: #9fb2c7;
+  font-size: 18px;
+}
+
+.sensor-history-stat {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: baseline;
+  -webkit-align-items: baseline;
+  align-items: baseline;
+}
+
+.sensor-history-stat-value {
+  color: #eef2f7;
+  font-weight: 600;
+}
+
+.sensor-history-labels {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  color: #8ea2b8;
+  font-size: 17px;
+}
+
 .forecast-grid {
   display: -webkit-box;
   display: -webkit-flex;
@@ -302,6 +379,8 @@ button:disabled {
   .value,
   .forecast-time,
   .forecast-secondary,
+  .sensor-history-stats,
+  .sensor-history-labels,
   .section-label,
   button,
   .footer,

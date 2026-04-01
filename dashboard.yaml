@@ -34,6 +34,10 @@ pages:
         type: sensor
         title: Air Quality
         entity: sensor.air_co2
+        history:
+          title: CO2 History
+          hours: 24
+          points: 48
         rows:
           - label: Temperature
             entity: sensor.air_temp

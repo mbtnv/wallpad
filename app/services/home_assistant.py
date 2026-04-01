@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -103,6 +105,62 @@ class HomeAssistantService:
             namespace="ha",
             key=f"forecast:{forecast_type}:{entity_id}",
             loader=load_forecast,
+            ttl_seconds=self.settings.ha_cache_ttl_seconds,
+        )
+
+    async def get_entity_history(
+        self,
+        entity_id: str | None,
+        hours: int = 24,
+    ) -> list[dict[str, Any]] | None:
+        if not entity_id or not self.settings.home_assistant_enabled:
+            return None
+
+        end_time = datetime.now(UTC)
+        start_time = end_time - timedelta(hours=hours)
+
+        async def load_history() -> list[dict[str, Any]] | None:
+            try:
+                response = await self._client.get(
+                    f"/api/history/period/{quote(start_time.isoformat(timespec='seconds'))}",
+                    params={
+                        "filter_entity_id": entity_id,
+                        "end_time": end_time.isoformat(timespec="seconds"),
+                        "minimal_response": "1",
+                        "no_attributes": "1",
+                    },
+                )
+            except httpx.HTTPError as exc:
+                raise UpstreamError("Failed to contact Home Assistant.") from exc
+
+            if response.status_code == 404:
+                return None
+
+            if response.is_error:
+                raise UpstreamError(
+                    f"Home Assistant returned status {response.status_code} for {entity_id} "
+                    f"history."
+                )
+
+            payload = response.json()
+            if not isinstance(payload, list):
+                return None
+
+            history_items: list[dict[str, Any]] = []
+            for entry in payload:
+                if isinstance(entry, dict):
+                    history_items.append(entry)
+                    continue
+                if not isinstance(entry, list):
+                    continue
+                history_items.extend(item for item in entry if isinstance(item, dict))
+
+            return history_items
+
+        return await self.cache.get_or_set_namespaced(
+            namespace="ha",
+            key=f"history:{entity_id}:{hours}",
+            loader=load_history,
             ttl_seconds=self.settings.ha_cache_ttl_seconds,
         )
 

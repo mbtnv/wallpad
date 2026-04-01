@@ -13,6 +13,7 @@ from app.schemas.dashboard_config import (
     HeaterWidgetConfig,
     SceneConfig,
     ScenesWidgetConfig,
+    SensorHistoryConfig,
     SensorRowConfig,
     SensorWidgetConfig,
     WeatherForecastConfig,
@@ -71,6 +72,7 @@ class HomeAssistantProvider(BaseProvider):
                 snapshot.error,
                 {},
                 {},
+                {},
                 None,
             )
 
@@ -100,6 +102,7 @@ class HomeAssistantProvider(BaseProvider):
             snapshot.config,
             snapshot.version,
             snapshot.error,
+            {},
             {},
             {},
             None,
@@ -195,12 +198,21 @@ class HomeAssistantProvider(BaseProvider):
         config: DashboardConfig,
         version: str,
     ) -> ProviderPayload:
-        states, forecasts, timezone_name = await asyncio.gather(
+        states, forecasts, histories, timezone_name = await asyncio.gather(
             self._load_entity_states(config),
             self._load_weather_forecasts(config),
+            self._load_sensor_histories(config),
             self.service.get_timezone(),
         )
-        payload = self._build_payload(config, version, None, states, forecasts, timezone_name)
+        payload = self._build_payload(
+            config,
+            version,
+            None,
+            states,
+            forecasts,
+            histories,
+            timezone_name,
+        )
         self.set_available(self._compute_availability(payload))
         return payload
 
@@ -240,6 +252,27 @@ class HomeAssistantProvider(BaseProvider):
             forecasts[request] = None if isinstance(result, Exception) else result
         return forecasts
 
+    async def _load_sensor_histories(
+        self,
+        config: DashboardConfig,
+    ) -> dict[tuple[str, int], list[dict[str, Any]] | None]:
+        requests = list(dict.fromkeys(self._collect_sensor_history_requests(config)))
+        if not requests:
+            return {}
+
+        results = await asyncio.gather(
+            *(
+                self.service.get_entity_history(entity_id=entity_id, hours=hours)
+                for entity_id, hours in requests
+            ),
+            return_exceptions=True,
+        )
+
+        histories: dict[tuple[str, int], list[dict[str, Any]] | None] = {}
+        for request, result in zip(requests, results):
+            histories[request] = None if isinstance(result, Exception) else result
+        return histories
+
     def _collect_entity_ids(self, config: DashboardConfig) -> list[str]:
         entity_ids: list[str] = []
         for widget in config.iter_widgets():
@@ -255,6 +288,17 @@ class HomeAssistantProvider(BaseProvider):
             if not isinstance(widget, WeatherWidgetConfig) or widget.forecast is None:
                 continue
             requests.append((widget.weather_entity, widget.forecast.type))
+        return requests
+
+    def _collect_sensor_history_requests(
+        self,
+        config: DashboardConfig,
+    ) -> list[tuple[str, int]]:
+        requests: list[tuple[str, int]] = []
+        for widget in config.iter_widgets():
+            if not isinstance(widget, SensorWidgetConfig) or widget.history is None:
+                continue
+            requests.append((widget.entity, widget.history.hours))
         return requests
 
     def _collect_widget_entities(self, widget: WidgetConfig) -> list[str]:
@@ -278,6 +322,7 @@ class HomeAssistantProvider(BaseProvider):
         config_error: str | None,
         states: dict[str, dict[str, Any] | None],
         forecasts: dict[tuple[str, str], list[dict[str, Any]] | None],
+        histories: dict[tuple[str, int], list[dict[str, Any]] | None],
         timezone_name: str | None,
     ) -> ProviderPayload:
         return {
@@ -285,7 +330,8 @@ class HomeAssistantProvider(BaseProvider):
             "config_error": config_error,
             "default_page": config.resolved_default_page(),
             "pages": [
-                self._build_page(page, states, forecasts, timezone_name) for page in config.pages
+                self._build_page(page, states, forecasts, histories, timezone_name)
+                for page in config.pages
             ],
         }
 
@@ -294,13 +340,14 @@ class HomeAssistantProvider(BaseProvider):
         page: Any,
         states: dict[str, dict[str, Any] | None],
         forecasts: dict[tuple[str, str], list[dict[str, Any]] | None],
+        histories: dict[tuple[str, int], list[dict[str, Any]] | None],
         timezone_name: str | None,
     ) -> dict[str, Any]:
         return {
             "id": page.id,
             "title": page.title,
             "widgets": [
-                self._build_widget(widget, states, forecasts, timezone_name)
+                self._build_widget(widget, states, forecasts, histories, timezone_name)
                 for widget in page.widgets
             ],
         }
@@ -310,12 +357,13 @@ class HomeAssistantProvider(BaseProvider):
         widget: WidgetConfig,
         states: dict[str, dict[str, Any] | None],
         forecasts: dict[tuple[str, str], list[dict[str, Any]] | None],
+        histories: dict[tuple[str, int], list[dict[str, Any]] | None],
         timezone_name: str | None,
     ) -> dict[str, Any]:
         if isinstance(widget, WeatherWidgetConfig):
             return self._build_weather_widget(widget, states, forecasts, timezone_name)
         if isinstance(widget, SensorWidgetConfig):
-            return self._build_sensor_widget(widget, states)
+            return self._build_sensor_widget(widget, states, histories, timezone_name)
         if isinstance(widget, HeaterWidgetConfig):
             return self._build_heater_widget(widget, states)
         if isinstance(widget, ScenesWidgetConfig):
@@ -479,18 +527,30 @@ class HomeAssistantProvider(BaseProvider):
         self,
         widget: SensorWidgetConfig,
         states: dict[str, dict[str, Any] | None],
+        histories: dict[tuple[str, int], list[dict[str, Any]] | None],
+        timezone_name: str | None,
     ) -> dict[str, Any]:
         sensor_state = states.get(widget.entity)
         sensor_available = self._state_is_available_from_state(sensor_state)
         attributes = sensor_state.get("attributes", {}) if sensor_state else {}
         rows = [self._build_sensor_row(row, states.get(row.entity)) for row in widget.rows]
+        history = self._build_sensor_history(
+            config=widget.history,
+            state=sensor_state,
+            history_items=histories.get((widget.entity, widget.history.hours))
+            if widget.history is not None
+            else None,
+            timezone_name=timezone_name,
+        )
 
         return {
             "id": widget.id,
             "type": widget.type,
             "title": widget.title,
             "wide": widget.wide,
-            "available": sensor_available or any(row["available"] for row in rows),
+            "available": (
+                sensor_available or any(row["available"] for row in rows) or history is not None
+            ),
             "primary_text": self._format_entity_state(sensor_state),
             "secondary_text": (
                 widget.subtitle
@@ -498,8 +558,108 @@ class HomeAssistantProvider(BaseProvider):
                 or ("Sensor unavailable" if not sensor_available else None)
             ),
             "rows": rows,
+            "history": history,
             "actions": [],
         }
+
+    def _build_sensor_history(
+        self,
+        config: SensorHistoryConfig | None,
+        state: dict[str, Any] | None,
+        history_items: list[dict[str, Any]] | None,
+        timezone_name: str | None,
+    ) -> dict[str, Any] | None:
+        if config is None or not history_items:
+            return None
+
+        entries: list[tuple[datetime, float]] = []
+        for item in history_items:
+            numeric_value = self._coerce_float(item.get("state"))
+            timestamp = self._resolve_history_timestamp(item, timezone_name)
+            if numeric_value is None or timestamp is None:
+                continue
+            entries.append((timestamp, numeric_value))
+
+        if not entries:
+            return None
+
+        if len(entries) == 1:
+            entries.append(entries[0])
+
+        entries.sort(key=lambda entry: entry[0])
+        sampled_entries = self._downsample_history_entries(entries, config.points)
+        if len(sampled_entries) < 2:
+            return None
+
+        values = [value for _, value in sampled_entries]
+        unit = self._resolve_entity_unit(state)
+        spans_multiple_days = sampled_entries[0][0].date() != sampled_entries[-1][0].date()
+
+        return {
+            "title": config.title or self._default_sensor_history_title(config.hours),
+            "start_label": self._format_history_range_label(
+                sampled_entries[0][0], spans_multiple_days
+            ),
+            "end_label": self._format_history_range_label(
+                sampled_entries[-1][0], spans_multiple_days
+            ),
+            "min_label": self._format_value(min(values), unit),
+            "max_label": self._format_value(max(values), unit),
+            "points": [{"value": value} for _, value in sampled_entries],
+        }
+
+    def _downsample_history_entries(
+        self,
+        entries: list[tuple[datetime, float]],
+        max_points: int,
+    ) -> list[tuple[datetime, float]]:
+        if len(entries) <= max_points:
+            return entries
+
+        last_index = len(entries) - 1
+        indexes: list[int] = []
+        for step in range(max_points):
+            index = round(step * last_index / (max_points - 1))
+            if indexes and index == indexes[-1]:
+                continue
+            indexes.append(index)
+
+        if indexes[-1] != last_index:
+            indexes.append(last_index)
+
+        return [entries[index] for index in indexes]
+
+    def _resolve_history_timestamp(
+        self,
+        history_item: dict[str, Any],
+        timezone_name: str | None,
+    ) -> datetime | None:
+        parsed = self._parse_datetime(
+            history_item.get("last_changed") or history_item.get("last_updated")
+        )
+        if parsed is None:
+            return None
+
+        target_timezone = self._resolve_timezone(timezone_name)
+        if parsed.tzinfo is not None and target_timezone is not None:
+            return parsed.astimezone(target_timezone)
+        if parsed.tzinfo is not None:
+            return parsed.astimezone()
+        return parsed
+
+    def _default_sensor_history_title(self, hours: int) -> str:
+        if hours == 1:
+            return "Last Hour"
+        return f"Last {hours} Hours"
+
+    def _format_history_range_label(
+        self,
+        value: datetime,
+        show_date: bool,
+    ) -> str:
+        if show_date:
+            return value.strftime("%d %b %H:%M")
+        return value.strftime("%H:%M")
 
     def _build_heater_widget(
         self,
@@ -811,9 +971,8 @@ class HomeAssistantProvider(BaseProvider):
         if not text:
             return "--"
 
-        try:
-            parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
-        except ValueError:
+        parsed = self._parse_datetime(value)
+        if parsed is None:
             return text
 
         target_timezone = self._resolve_timezone(timezone_name)
@@ -836,8 +995,22 @@ class HomeAssistantProvider(BaseProvider):
         if not state or not self._state_is_available(state.get("state")):
             return "--"
 
+        return self._format_value(state.get("state"), self._resolve_entity_unit(state))
+
+    def _resolve_entity_unit(self, state: dict[str, Any] | None) -> str | None:
+        if not state:
+            return None
+
         attributes = state.get("attributes", {})
-        return self._format_value(state.get("state"), attributes.get("unit_of_measurement"))
+        if not isinstance(attributes, dict):
+            return None
+
+        unit = attributes.get("unit_of_measurement")
+        if unit is None:
+            return None
+
+        unit_text = str(unit).strip()
+        return unit_text or None
 
     def _format_value(self, value: Any, unit: str | None = None) -> str:
         normalized_value = self._coerce_float(value)
@@ -887,6 +1060,19 @@ class HomeAssistantProvider(BaseProvider):
         try:
             return float(value)
         except (TypeError, ValueError):
+            return None
+
+    def _parse_datetime(self, value: Any) -> datetime | None:
+        if value is None:
+            return None
+
+        text = str(value).strip()
+        if not text:
+            return None
+
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00"))
+        except ValueError:
             return None
 
     def _humanize(self, value: str) -> str:
