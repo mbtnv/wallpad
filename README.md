@@ -55,9 +55,11 @@ Copy the example file and update it with your Home Assistant values:
 cp .env.example .env
 ```
 
-Required environment variables:
+Environment variables:
 
 ```env
+# Optional; defaults to 8080
+APP_PORT=8080
 HA_BASE_URL=
 HA_TOKEN=
 HA_WEATHER_ENTITY=
@@ -90,10 +92,10 @@ Load environment variables and start the server:
 set -a
 source .env
 set +a
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port "${APP_PORT:-8080}"
 ```
 
-Open the dashboard at [http://localhost:8000](http://localhost:8000).
+Open the dashboard at [http://localhost:8080](http://localhost:8080) by default, or use your `APP_PORT` value.
 
 Run quality checks:
 
@@ -109,7 +111,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Then open [http://localhost:8000](http://localhost:8000).
+Then open [http://localhost:8080](http://localhost:8080) by default, or use your `APP_PORT` value.
 
 ## API Endpoints
 
