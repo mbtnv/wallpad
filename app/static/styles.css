@@ -178,16 +178,38 @@ body {
 }
 
 .forecast-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-  gap: 10px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+  flex-wrap: wrap;
+  margin: -5px;
 }
 
 .forecast-card {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1 1 120px;
+  flex: 1 1 120px;
+  min-width: 96px;
+  margin: 5px;
   padding: 14px 12px;
   border-radius: 14px;
   background: #121922;
   border: 1px solid #233041;
+  box-sizing: border-box;
+}
+
+@supports (display: grid) {
+  .forecast-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: 10px;
+    margin: 0;
+  }
+
+  .forecast-card {
+    margin: 0;
+  }
 }
 
 .forecast-card-muted {
