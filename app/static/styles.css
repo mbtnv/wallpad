@@ -61,7 +61,7 @@ body {
   -webkit-justify-content: center;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 18px;
+  margin-top: 18px;
 }
 
 .page-tab {
@@ -201,6 +201,7 @@ button:disabled {
 
 .footer {
   margin-top: 18px;
+  margin-bottom: 6px;
   text-align: center;
   font-size: 20px;
   color: #90a0b5;
