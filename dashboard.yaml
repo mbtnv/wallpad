@@ -43,3 +43,11 @@ pages:
             entity: sensor.air_temp
           - label: Humidity
             entity: sensor.air_hum
+
+  - id: heater
+    title: "3"
+    widgets:
+      - id: heater_control
+        type: heater
+        title: Heater
+        entity: climate.living_room
