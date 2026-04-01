@@ -106,6 +106,43 @@ class HomeAssistantService:
             ttl_seconds=self.settings.ha_cache_ttl_seconds,
         )
 
+    async def get_timezone(self) -> str | None:
+        if not self.settings.home_assistant_enabled:
+            return None
+
+        async def load_config() -> dict[str, Any] | None:
+            try:
+                response = await self._client.get("/api/config")
+            except httpx.HTTPError as exc:
+                raise UpstreamError("Failed to contact Home Assistant.") from exc
+
+            if response.status_code == 404:
+                return None
+
+            if response.is_error:
+                raise UpstreamError(
+                    f"Home Assistant returned status {response.status_code} for config."
+                )
+
+            payload = response.json()
+            return payload if isinstance(payload, dict) else None
+
+        config = await self.cache.get_or_set_namespaced(
+            namespace="ha",
+            key="config",
+            loader=load_config,
+            ttl_seconds=self.settings.ha_cache_ttl_seconds,
+        )
+        if not isinstance(config, dict):
+            return None
+
+        time_zone = config.get("time_zone")
+        if not isinstance(time_zone, str):
+            return None
+
+        normalized_timezone = time_zone.strip()
+        return normalized_timezone or None
+
     async def call_service(
         self,
         domain: str,

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.config import Settings
 from app.core.errors import ActionError, ConfigurationError
@@ -64,7 +65,14 @@ class HomeAssistantProvider(BaseProvider):
 
         if not self.settings.home_assistant_enabled:
             self.set_available(False)
-            return self._build_payload(snapshot.config, snapshot.version, snapshot.error, {}, {})
+            return self._build_payload(
+                snapshot.config,
+                snapshot.version,
+                snapshot.error,
+                {},
+                {},
+                None,
+            )
 
         try:
             payload = await self.get_cached(
@@ -88,7 +96,14 @@ class HomeAssistantProvider(BaseProvider):
 
     def fallback_payload(self) -> ProviderPayload:
         snapshot = self.config_store.get_snapshot()
-        return self._build_payload(snapshot.config, snapshot.version, snapshot.error, {}, {})
+        return self._build_payload(
+            snapshot.config,
+            snapshot.version,
+            snapshot.error,
+            {},
+            {},
+            None,
+        )
 
     async def toggle_heater(self, widget_id: str | None = None) -> ProviderPayload:
         heater_widget = self._require_heater_widget(widget_id)
@@ -180,9 +195,12 @@ class HomeAssistantProvider(BaseProvider):
         config: DashboardConfig,
         version: str,
     ) -> ProviderPayload:
-        states = await self._load_entity_states(config)
-        forecasts = await self._load_weather_forecasts(config)
-        payload = self._build_payload(config, version, None, states, forecasts)
+        states, forecasts, timezone_name = await asyncio.gather(
+            self._load_entity_states(config),
+            self._load_weather_forecasts(config),
+            self.service.get_timezone(),
+        )
+        payload = self._build_payload(config, version, None, states, forecasts, timezone_name)
         self.set_available(self._compute_availability(payload))
         return payload
 
@@ -260,12 +278,15 @@ class HomeAssistantProvider(BaseProvider):
         config_error: str | None,
         states: dict[str, dict[str, Any] | None],
         forecasts: dict[tuple[str, str], list[dict[str, Any]] | None],
+        timezone_name: str | None,
     ) -> ProviderPayload:
         return {
             "config_version": version,
             "config_error": config_error,
             "default_page": config.resolved_default_page(),
-            "pages": [self._build_page(page, states, forecasts) for page in config.pages],
+            "pages": [
+                self._build_page(page, states, forecasts, timezone_name) for page in config.pages
+            ],
         }
 
     def _build_page(
@@ -273,11 +294,15 @@ class HomeAssistantProvider(BaseProvider):
         page: Any,
         states: dict[str, dict[str, Any] | None],
         forecasts: dict[tuple[str, str], list[dict[str, Any]] | None],
+        timezone_name: str | None,
     ) -> dict[str, Any]:
         return {
             "id": page.id,
             "title": page.title,
-            "widgets": [self._build_widget(widget, states, forecasts) for widget in page.widgets],
+            "widgets": [
+                self._build_widget(widget, states, forecasts, timezone_name)
+                for widget in page.widgets
+            ],
         }
 
     def _build_widget(
@@ -285,9 +310,10 @@ class HomeAssistantProvider(BaseProvider):
         widget: WidgetConfig,
         states: dict[str, dict[str, Any] | None],
         forecasts: dict[tuple[str, str], list[dict[str, Any]] | None],
+        timezone_name: str | None,
     ) -> dict[str, Any]:
         if isinstance(widget, WeatherWidgetConfig):
-            return self._build_weather_widget(widget, states, forecasts)
+            return self._build_weather_widget(widget, states, forecasts, timezone_name)
         if isinstance(widget, SensorWidgetConfig):
             return self._build_sensor_widget(widget, states)
         if isinstance(widget, HeaterWidgetConfig):
@@ -312,6 +338,7 @@ class HomeAssistantProvider(BaseProvider):
         widget: WeatherWidgetConfig,
         states: dict[str, dict[str, Any] | None],
         forecasts: dict[tuple[str, str], list[dict[str, Any]] | None],
+        timezone_name: str | None,
     ) -> dict[str, Any]:
         weather_state = states.get(widget.weather_entity)
         weather_available = self._state_is_available_from_state(weather_state)
@@ -327,6 +354,7 @@ class HomeAssistantProvider(BaseProvider):
             forecast_items=forecasts.get((widget.weather_entity, widget.forecast.type))
             if widget.forecast is not None
             else None,
+            timezone_name=timezone_name,
         )
 
         return {
@@ -397,6 +425,7 @@ class HomeAssistantProvider(BaseProvider):
         config: WeatherForecastConfig | None,
         weather_state: dict[str, Any] | None,
         forecast_items: list[dict[str, Any]] | None,
+        timezone_name: str | None,
     ) -> list[dict[str, Any]]:
         if config is None or not forecast_items:
             return []
@@ -410,7 +439,7 @@ class HomeAssistantProvider(BaseProvider):
             available = has_primary or has_secondary
             entries.append(
                 {
-                    "time": self._format_forecast_time(item.get("datetime")),
+                    "time": self._format_forecast_time(item.get("datetime"), timezone_name),
                     "primary_text": (
                         self._format_weather_attribute(
                             weather_entity=None,
@@ -774,7 +803,7 @@ class HomeAssistantProvider(BaseProvider):
         unit_text = str(unit).strip()
         return unit_text or None
 
-    def _format_forecast_time(self, value: Any) -> str:
+    def _format_forecast_time(self, value: Any, timezone_name: str | None = None) -> str:
         if value is None:
             return "--"
 
@@ -787,7 +816,21 @@ class HomeAssistantProvider(BaseProvider):
         except ValueError:
             return text
 
-        return parsed.astimezone().strftime("%H:%M")
+        target_timezone = self._resolve_timezone(timezone_name)
+        if parsed.tzinfo is not None and target_timezone is not None:
+            return parsed.astimezone(target_timezone).strftime("%H:%M")
+        if parsed.tzinfo is not None:
+            return parsed.astimezone().strftime("%H:%M")
+        return parsed.strftime("%H:%M")
+
+    def _resolve_timezone(self, timezone_name: str | None) -> ZoneInfo | None:
+        if not timezone_name:
+            return None
+
+        try:
+            return ZoneInfo(timezone_name)
+        except ZoneInfoNotFoundError:
+            return None
 
     def _format_entity_state(self, state: dict[str, Any] | None) -> str:
         if not state or not self._state_is_available(state.get("state")):
