@@ -324,7 +324,7 @@ wheels = [
 ]
 
 [[package]]
-name = "wall-dashboard"
+name = "wallpad"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

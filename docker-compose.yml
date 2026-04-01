@@ -1,7 +1,7 @@
 services:
-  wall-dashboard:
+  wallpad:
     build: .
-    container_name: wall-dashboard
+    container_name: wallpad
     env_file:
       - .env
     volumes:

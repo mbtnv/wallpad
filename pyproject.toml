@@ -1,5 +1,5 @@
 [project]
-name = "wall-dashboard"
+name = "wallpad"
 version = "0.1.0"
 description = "Lightweight wall dashboard for an older iPad"
 readme = "README.md"
