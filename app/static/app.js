@@ -1,7 +1,10 @@
 (function () {
   var REFRESH_INTERVAL_MS = 15000;
   var CLOCK_INTERVAL_MS = 1000;
+  var PAGE_RELOAD_INTERVAL_MS = 1000 * 60 * 30;
+  var ERROR_RELOAD_DELAY_MS = 10000;
   var statusTimer = null;
+  var errorReloadTimer = null;
   var dashboardData = null;
 
   function byId(id) {
@@ -153,17 +156,38 @@
   function loadDashboard(isInitialLoad) {
     request("GET", "/api/dashboard", null, function (error, payload) {
       if (error) {
-        showStatus(error.message, true);
+        scheduleErrorReload();
+        showStatus(error.message + " Reloading page in 10 seconds.", true);
         if (isInitialLoad) {
           renderUnavailableState();
         }
         return;
       }
 
+      clearErrorReload();
       dashboardData = payload;
       renderDashboard(payload);
       showStatus("", false);
     });
+  }
+
+  function scheduleErrorReload() {
+    if (errorReloadTimer) {
+      return;
+    }
+
+    errorReloadTimer = window.setTimeout(function () {
+      window.location.reload();
+    }, ERROR_RELOAD_DELAY_MS);
+  }
+
+  function clearErrorReload() {
+    if (!errorReloadTimer) {
+      return;
+    }
+
+    window.clearTimeout(errorReloadTimer);
+    errorReloadTimer = null;
   }
 
   function renderUnavailableState() {
@@ -414,6 +438,9 @@
     window.setInterval(function () {
       loadDashboard(false);
     }, REFRESH_INTERVAL_MS);
+    window.setInterval(function () {
+      window.location.reload();
+    }, PAGE_RELOAD_INTERVAL_MS);
   }
 
   if (document.readyState === "loading") {

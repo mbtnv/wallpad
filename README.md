@@ -124,6 +124,7 @@ Then open [http://localhost:8080](http://localhost:8080) by default, or use your
 ## Notes
 
 - The frontend polls `/api/dashboard` every 15 seconds.
+- The frontend also performs a full page reload every 30 minutes and reloads after 10 seconds if the dashboard API is unavailable.
 - The clock is updated locally in the browser every second.
 - Missing entities are handled gracefully and shown as unavailable.
 - On Home Assistant request failures, the backend returns the last known cached value when possible.

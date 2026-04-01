@@ -1,0 +1,51 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="56" y1="44" x2="452" y2="468" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#162131"/>
+      <stop offset="1" stop-color="#0D121A"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="128" y1="108" x2="384" y2="404" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#59B0FF"/>
+      <stop offset="1" stop-color="#2F7BD6"/>
+    </linearGradient>
+    <filter id="shadow" x="36" y="36" width="440" height="440" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="18"/>
+      <feGaussianBlur stdDeviation="18"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0156863 0 0 0 0 0.0392157 0 0 0 0 0.0745098 0 0 0 0.42 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <rect x="56" y="56" width="400" height="400" rx="96" fill="url(#bg)"/>
+    <rect x="65" y="65" width="382" height="382" rx="87" stroke="#273243" stroke-width="10"/>
+
+    <rect x="112" y="104" width="288" height="72" rx="26" fill="#101722" stroke="#314257" stroke-width="8"/>
+    <rect x="140" y="130" width="76" height="14" rx="7" fill="url(#glow)"/>
+    <rect x="228" y="130" width="24" height="14" rx="7" fill="#42556E"/>
+    <rect x="260" y="130" width="24" height="14" rx="7" fill="#42556E"/>
+    <rect x="332" y="124" width="36" height="36" rx="18" fill="#17304A"/>
+    <circle cx="350" cy="142" r="8" fill="#8CC4FF"/>
+
+    <rect x="112" y="200" width="132" height="104" rx="28" fill="#171C24" stroke="#273243" stroke-width="8"/>
+    <circle cx="156" cy="242" r="20" fill="#F6B84F"/>
+    <path d="M176 260C185.389 260 193 252.389 193 243C200.18 244.08 206 250.337 206 258C206 266.389 199.389 273 191 273H156C147.163 273 140 265.837 140 257C140 248.163 147.163 241 156 241C158.346 241 160.575 241.505 162.583 242.412" stroke="#EEF2F7" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="140" y="284" width="76" height="8" rx="4" fill="#42556E"/>
+
+    <rect x="268" y="200" width="132" height="104" rx="28" fill="#171C24" stroke="#273243" stroke-width="8"/>
+    <rect x="344" y="224" width="20" height="46" rx="10" fill="#2F7BD6"/>
+    <circle cx="354" cy="266" r="18" fill="#2F7BD6"/>
+    <rect x="349" y="234" width="10" height="26" rx="5" fill="#EEF2F7"/>
+    <circle cx="354" cy="266" r="8" fill="#EEF2F7"/>
+    <rect x="296" y="284" width="76" height="8" rx="4" fill="#42556E"/>
+
+    <rect x="112" y="328" width="288" height="88" rx="28" fill="#171C24" stroke="#273243" stroke-width="8"/>
+    <rect x="138" y="358" width="64" height="26" rx="13" fill="url(#glow)"/>
+    <rect x="224" y="358" width="64" height="26" rx="13" fill="#4F9B4F"/>
+    <rect x="310" y="358" width="64" height="26" rx="13" fill="#324256"/>
+  </g>
+</svg>
