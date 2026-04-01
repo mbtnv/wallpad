@@ -234,6 +234,8 @@ body {
   -webkit-box-align: baseline;
   -webkit-align-items: baseline;
   align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .sensor-history-stat-value {

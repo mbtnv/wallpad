@@ -545,7 +545,7 @@
     item.className = "sensor-history-stat";
 
     labelNode.className = "sensor-history-stat-label";
-    labelNode.appendChild(document.createTextNode(label + " "));
+    labelNode.appendChild(document.createTextNode(label));
     item.appendChild(labelNode);
 
     valueNode.className = "sensor-history-stat-value";
