@@ -626,6 +626,12 @@ class HomeAssistantProvider(BaseProvider):
         if config.min is not None and value < config.min:
             return "alert"
 
+        if config.warning_max is not None and value > config.warning_max:
+            return "warning"
+
+        if config.warning_min is not None and value < config.warning_min:
+            return "warning"
+
         return "default"
 
     def _downsample_history_entries(

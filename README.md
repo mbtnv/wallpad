@@ -159,6 +159,7 @@ Sensor history charts are optional and render a compact line graph from Home Ass
     title: CO2 History
     hours: 24
     points: 48
+    warning_max: 700
     max: 800
   rows:
     - label: Temperature
@@ -167,7 +168,9 @@ Sensor history charts are optional and render a compact line graph from Home Ass
       entity: sensor.living_room_humidity
 ```
 
-If you set `max` and/or `min`, the history chart turns red when the current sensor value is above `max` or below `min`.
+If you set `warning_max` and/or `warning_min`, the history chart turns yellow when the current
+sensor value moves outside the warning range. If you also set `max` and/or `min`, the chart turns
+red when the current value crosses the critical range.
 
 ### Home Assistant Setup
 

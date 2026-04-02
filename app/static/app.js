@@ -715,7 +715,7 @@
     var chart = document.createElement("div");
     var svg = document.createElementNS(SVG_NS, "svg");
     var points = (history && history.points) || [];
-    var tone = history && history.tone === "alert" ? "alert" : "default";
+    var tone = "default";
     var width = 100;
     var height = 44;
     var padding = 3;
@@ -738,7 +738,9 @@
     var area;
 
     chart.className =
-      "sensor-history-chart" + (tone === "alert" ? " sensor-history-chart-alert" : "");
+      "sensor-history-chart" +
+      (tone === "alert" ? " sensor-history-chart-alert" : "") +
+      (tone === "warning" ? " sensor-history-chart-warning" : "");
 
     for (i = 0; i < points.length; i += 1) {
       value = parseFloat(points[i].value);
@@ -805,7 +807,9 @@
     area.setAttribute("d", areaPath);
     area.setAttribute(
       "class",
-      "sensor-history-area" + (tone === "alert" ? " sensor-history-area-alert" : "")
+      "sensor-history-area" +
+        (tone === "alert" ? " sensor-history-area-alert" : "") +
+        (tone === "warning" ? " sensor-history-area-warning" : "")
     );
     svg.appendChild(area);
 
@@ -813,7 +817,9 @@
     line.setAttribute("d", linePath);
     line.setAttribute(
       "class",
-      "sensor-history-line" + (tone === "alert" ? " sensor-history-line-alert" : "")
+      "sensor-history-line" +
+        (tone === "alert" ? " sensor-history-line-alert" : "") +
+        (tone === "warning" ? " sensor-history-line-warning" : "")
     );
     svg.appendChild(line);
 
@@ -1010,3 +1016,8 @@
     boot();
   }
 }());
+    if (history && history.tone === "alert") {
+      tone = "alert";
+    } else if (history && history.tone === "warning") {
+      tone = "warning";
+    }

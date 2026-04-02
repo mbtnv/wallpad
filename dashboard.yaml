@@ -38,6 +38,7 @@ pages:
           title: CO2 History
           hours: 24
           points: 48
+          warning_max: 700
           max: 800
         rows:
           - label: Temperature

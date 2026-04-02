@@ -42,7 +42,7 @@ class SensorHistoryPointData(BaseModel):
 
 class SensorHistoryData(BaseModel):
     title: str | None = None
-    tone: Literal["default", "alert"] = "default"
+    tone: Literal["default", "warning", "alert"] = "default"
     start_label: str | None = None
     end_label: str | None = None
     min_label: str | None = None

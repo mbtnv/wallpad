@@ -17,11 +17,25 @@ class SensorHistoryConfig(BaseModel):
     points: int = Field(default=48, ge=2, le=240)
     min: float | None = None
     max: float | None = None
+    warning_min: float | None = None
+    warning_max: float | None = None
 
     @model_validator(mode="after")
     def validate_thresholds(self) -> SensorHistoryConfig:
         if self.min is not None and self.max is not None and self.min > self.max:
             raise ValueError("Sensor history 'min' must be less than or equal to 'max'.")
+
+        if self.warning_min is not None and self.warning_max is not None:
+            if self.warning_min > self.warning_max:
+                raise ValueError(
+                    "Sensor history 'warning_min' must be less than or equal to 'warning_max'."
+                )
+
+        if self.min is not None and self.warning_min is not None and self.warning_min < self.min:
+            raise ValueError("Sensor history 'warning_min' must be greater than or equal to 'min'.")
+
+        if self.max is not None and self.warning_max is not None and self.warning_max > self.max:
+            raise ValueError("Sensor history 'warning_max' must be less than or equal to 'max'.")
 
         return self
 
