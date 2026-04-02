@@ -236,10 +236,18 @@ body {
   -webkit-align-items: baseline;
   align-items: baseline;
   gap: 6px;
+  margin-right: 12px;
+  margin-bottom: 6px;
   white-space: nowrap;
 }
 
+.sensor-history-stat-label {
+  display: inline-block;
+  margin-right: 6px;
+}
+
 .sensor-history-stat-value {
+  display: inline-block;
   color: #eef2f7;
   font-weight: 600;
 }
