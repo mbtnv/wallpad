@@ -81,5 +81,6 @@ class DashboardResponse(BaseModel):
     config_version: str | None = None
     config_error: str | None = None
     default_page: str | None = None
+    swipe_enabled: bool = True
     pages: list[DashboardPageData] = Field(default_factory=list)
     providers: dict[str, ProviderStatus] = Field(default_factory=dict)

@@ -329,6 +329,7 @@ class HomeAssistantProvider(BaseProvider):
             "config_version": version,
             "config_error": config_error,
             "default_page": config.resolved_default_page(),
+            "swipe_enabled": config.swipe_enabled,
             "pages": [
                 self._build_page(page, states, forecasts, histories, timezone_name)
                 for page in config.pages

@@ -4,6 +4,7 @@
   var PAGE_RELOAD_INTERVAL_MS = 1000 * 60 * 30;
   var ERROR_RELOAD_DELAY_MS = 10000;
   var CONFIG_RELOAD_DELAY_MS = 600;
+  var PAGE_ANIMATION_DURATION_MS = 220;
   var SWIPE_THRESHOLD_PX = 56;
   var SWIPE_DOMINANCE_RATIO = 1.25;
   var ACTIVE_PAGE_STORAGE_KEY = "wallpad-active-page";
@@ -12,6 +13,7 @@
   var dashboardData = null;
   var activePageId = null;
   var dashboardConfigVersion = null;
+  var pageAnimationResetTimer = null;
   var pageSwipeHandlersBound = false;
   var pageSwipeState = null;
 
@@ -246,16 +248,21 @@
     });
   }
 
-  function renderDashboard(data) {
+  function renderDashboard(data, options) {
     var pages = (data && data.pages) || [];
     var selectedPageId = resolveActivePageId(pages, data ? data.default_page : null);
     var page = findPage(pages, selectedPageId);
+    var pageTransition = null;
 
     activePageId = selectedPageId;
     saveActivePageId(selectedPageId);
 
+    if (options && options.transitionDirection) {
+      pageTransition = { direction: options.transitionDirection };
+    }
+
     renderPageTabs(pages, selectedPageId);
-    renderPage(page);
+    renderPage(page, pageTransition);
     setLastUpdated(data ? data.generated_at : null);
   }
 
@@ -331,16 +338,33 @@
     };
   }
 
-  function setActivePage(pageId) {
+  function setActivePage(pageId, transitionDirection) {
+    var pages = (dashboardData && dashboardData.pages) || [];
+    var resolvedTransitionDirection = transitionDirection;
+
     if (!pageId) {
       return;
+    }
+
+    if (pages.length && !hasPage(pages, pageId)) {
+      return;
+    }
+
+    if (pageId === activePageId) {
+      return;
+    }
+
+    if (!resolvedTransitionDirection) {
+      resolvedTransitionDirection = resolvePageTransitionDirection(pages, activePageId, pageId);
     }
 
     activePageId = pageId;
     saveActivePageId(pageId);
 
     if (dashboardData) {
-      renderDashboard(dashboardData);
+      renderDashboard(dashboardData, {
+        transitionDirection: resolvedTransitionDirection
+      });
     }
   }
 
@@ -358,7 +382,7 @@
       return;
     }
 
-    setActivePage(pages[nextIndex].id);
+    setActivePage(pages[nextIndex].id, offset > 0 ? 1 : -1);
   }
 
   function findPageIndex(pages, pageId) {
@@ -375,6 +399,21 @@
     }
 
     return -1;
+  }
+
+  function resolvePageTransitionDirection(pages, currentPageId, nextPageId) {
+    var currentIndex = findPageIndex(pages, currentPageId);
+    var nextIndex = findPageIndex(pages, nextPageId);
+
+    if (currentIndex < 0 || nextIndex < 0 || currentIndex === nextIndex) {
+      return 0;
+    }
+
+    return nextIndex > currentIndex ? 1 : -1;
+  }
+
+  function isSwipeEnabled() {
+    return !!(dashboardData && dashboardData.swipe_enabled);
   }
 
   function bindPageSwipeHandlers() {
@@ -395,6 +434,7 @@
     var touch;
 
     if (
+      !isSwipeEnabled() ||
       !event.touches ||
       event.touches.length !== 1 ||
       isInteractiveTarget(event.target)
@@ -486,7 +526,7 @@
     return false;
   }
 
-  function renderPage(page) {
+  function renderPage(page, pageTransition) {
     var container = byId("panels");
     var i;
 
@@ -494,16 +534,51 @@
       return;
     }
 
+    clearPageAnimation(container);
     container.innerHTML = "";
 
     if (!page || !page.widgets || !page.widgets.length) {
       container.appendChild(buildEmptyState());
+      applyPageAnimation(container, pageTransition);
       return;
     }
 
     for (i = 0; i < page.widgets.length; i += 1) {
       container.appendChild(buildWidget(page.widgets[i]));
     }
+
+    applyPageAnimation(container, pageTransition);
+  }
+
+  function applyPageAnimation(container, pageTransition) {
+    var className;
+
+    if (!container || !pageTransition || !pageTransition.direction) {
+      return;
+    }
+
+    className = pageTransition.direction > 0 ? "panels-animate-next" : "panels-animate-prev";
+
+    void container.offsetWidth;
+    container.classList.add(className);
+
+    pageAnimationResetTimer = window.setTimeout(function () {
+      clearPageAnimation(container);
+    }, PAGE_ANIMATION_DURATION_MS);
+  }
+
+  function clearPageAnimation(container) {
+    if (pageAnimationResetTimer) {
+      window.clearTimeout(pageAnimationResetTimer);
+      pageAnimationResetTimer = null;
+    }
+
+    if (!container) {
+      return;
+    }
+
+    container.classList.remove("panels-animate-next");
+    container.classList.remove("panels-animate-prev");
   }
 
   function buildEmptyState() {

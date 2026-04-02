@@ -73,6 +73,7 @@ Dashboard layout lives in `dashboard.yaml`. It defines pages and widgets:
 
 ```yaml
 default_page: home
+swipe_enabled: true
 
 pages:
   - id: home
@@ -166,6 +167,12 @@ Sensor history charts are optional and render a compact line graph from Home Ass
       entity: sensor.living_room_temperature
     - label: Humidity
       entity: sensor.living_room_humidity
+```
+
+Page swipe navigation is enabled by default and can be turned off in `dashboard.yaml`:
+
+```yaml
+swipe_enabled: false
 ```
 
 If you set `warning_max` and/or `warning_min`, the history chart turns yellow when the current

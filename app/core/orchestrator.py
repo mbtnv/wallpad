@@ -105,6 +105,7 @@ class DashboardOrchestrator:
             config_version=None,
             config_error=None,
             default_page=None,
+            swipe_enabled=True,
             pages=[],
             providers={},
         ).model_dump()

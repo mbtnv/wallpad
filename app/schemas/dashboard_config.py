@@ -117,6 +117,7 @@ class DashboardPageConfig(BaseModel):
 
 class DashboardConfig(BaseModel):
     default_page: str | None = None
+    swipe_enabled: bool = True
     pages: list[DashboardPageConfig]
 
     @model_validator(mode="after")

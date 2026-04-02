@@ -1,4 +1,5 @@
 default_page: home
+swipe_enabled: true
 
 pages:
   - id: home
