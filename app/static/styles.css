@@ -89,6 +89,7 @@ body {
   -webkit-flex-wrap: wrap;
   flex-wrap: wrap;
   margin: 0 -10px;
+  touch-action: pan-y;
 }
 
 .panel {

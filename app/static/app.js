@@ -4,12 +4,16 @@
   var PAGE_RELOAD_INTERVAL_MS = 1000 * 60 * 30;
   var ERROR_RELOAD_DELAY_MS = 10000;
   var CONFIG_RELOAD_DELAY_MS = 600;
+  var SWIPE_THRESHOLD_PX = 56;
+  var SWIPE_DOMINANCE_RATIO = 1.25;
   var ACTIVE_PAGE_STORAGE_KEY = "wallpad-active-page";
   var statusTimer = null;
   var errorReloadTimer = null;
   var dashboardData = null;
   var activePageId = null;
   var dashboardConfigVersion = null;
+  var pageSwipeHandlersBound = false;
+  var pageSwipeState = null;
 
   function byId(id) {
     return document.getElementById(id);
@@ -323,12 +327,163 @@
 
   function attachPageHandler(button, pageId) {
     button.onclick = function () {
-      activePageId = pageId;
-      saveActivePageId(pageId);
-      if (dashboardData) {
-        renderDashboard(dashboardData);
-      }
+      setActivePage(pageId);
     };
+  }
+
+  function setActivePage(pageId) {
+    if (!pageId) {
+      return;
+    }
+
+    activePageId = pageId;
+    saveActivePageId(pageId);
+
+    if (dashboardData) {
+      renderDashboard(dashboardData);
+    }
+  }
+
+  function setActivePageByOffset(offset) {
+    var pages = (dashboardData && dashboardData.pages) || [];
+    var currentIndex = findPageIndex(pages, activePageId);
+    var nextIndex;
+
+    if (!offset || pages.length <= 1 || currentIndex < 0) {
+      return;
+    }
+
+    nextIndex = currentIndex + offset;
+    if (nextIndex < 0 || nextIndex >= pages.length) {
+      return;
+    }
+
+    setActivePage(pages[nextIndex].id);
+  }
+
+  function findPageIndex(pages, pageId) {
+    var i;
+
+    if (!pageId) {
+      return -1;
+    }
+
+    for (i = 0; i < pages.length; i += 1) {
+      if (pages[i].id === pageId) {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+
+  function bindPageSwipeHandlers() {
+    var container = byId("panels");
+
+    if (!container || pageSwipeHandlersBound) {
+      return;
+    }
+
+    pageSwipeHandlersBound = true;
+    container.addEventListener("touchstart", handlePageTouchStart, false);
+    container.addEventListener("touchmove", handlePageTouchMove, false);
+    container.addEventListener("touchend", handlePageTouchEnd, false);
+    container.addEventListener("touchcancel", resetPageTouchState, false);
+  }
+
+  function handlePageTouchStart(event) {
+    var touch;
+
+    if (
+      !event.touches ||
+      event.touches.length !== 1 ||
+      isInteractiveTarget(event.target)
+    ) {
+      resetPageTouchState();
+      return;
+    }
+
+    touch = event.touches[0];
+    pageSwipeState = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      currentX: touch.clientX,
+      currentY: touch.clientY
+    };
+  }
+
+  function handlePageTouchMove(event) {
+    var touch;
+
+    if (!pageSwipeState) {
+      return;
+    }
+
+    if (!event.touches || event.touches.length !== 1) {
+      resetPageTouchState();
+      return;
+    }
+
+    touch = event.touches[0];
+    pageSwipeState.currentX = touch.clientX;
+    pageSwipeState.currentY = touch.clientY;
+  }
+
+  function handlePageTouchEnd(event) {
+    var touch;
+    var deltaX;
+    var deltaY;
+
+    if (!pageSwipeState) {
+      return;
+    }
+
+    if (event.changedTouches && event.changedTouches.length) {
+      touch = event.changedTouches[0];
+      pageSwipeState.currentX = touch.clientX;
+      pageSwipeState.currentY = touch.clientY;
+    }
+
+    deltaX = pageSwipeState.currentX - pageSwipeState.startX;
+    deltaY = pageSwipeState.currentY - pageSwipeState.startY;
+    resetPageTouchState();
+
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX) {
+      return;
+    }
+
+    if (Math.abs(deltaX) <= Math.abs(deltaY) * SWIPE_DOMINANCE_RATIO) {
+      return;
+    }
+
+    setActivePageByOffset(deltaX < 0 ? 1 : -1);
+  }
+
+  function resetPageTouchState() {
+    pageSwipeState = null;
+  }
+
+  function isInteractiveTarget(node) {
+    var current = node;
+    var tagName;
+
+    while (current && current !== document.body) {
+      if (current.nodeType === 1) {
+        tagName = current.tagName ? current.tagName.toLowerCase() : "";
+        if (
+          tagName === "button" ||
+          tagName === "a" ||
+          tagName === "input" ||
+          tagName === "select" ||
+          tagName === "textarea"
+        ) {
+          return true;
+        }
+      }
+      current = current.parentNode;
+    }
+
+    return false;
   }
 
   function renderPage(page) {
@@ -829,6 +984,7 @@
 
   function boot() {
     formatClock();
+    bindPageSwipeHandlers();
     window.setInterval(formatClock, CLOCK_INTERVAL_MS);
     loadDashboard(true);
     window.setInterval(function () {
