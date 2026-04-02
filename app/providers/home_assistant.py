@@ -593,10 +593,14 @@ class HomeAssistantProvider(BaseProvider):
 
         values = [value for _, value in sampled_entries]
         unit = self._resolve_entity_unit(state)
+        current_value = self._coerce_float(state.get("state")) if state else None
+        if current_value is None:
+            current_value = sampled_entries[-1][1]
         spans_multiple_days = sampled_entries[0][0].date() != sampled_entries[-1][0].date()
 
         return {
             "title": config.title or self._default_sensor_history_title(config.hours),
+            "tone": self._resolve_sensor_history_tone(current_value, config),
             "start_label": self._format_history_range_label(
                 sampled_entries[0][0], spans_multiple_days
             ),
@@ -607,6 +611,22 @@ class HomeAssistantProvider(BaseProvider):
             "max_label": self._format_value(max(values), unit),
             "points": [{"value": value} for _, value in sampled_entries],
         }
+
+    def _resolve_sensor_history_tone(
+        self,
+        value: float | None,
+        config: SensorHistoryConfig,
+    ) -> str:
+        if value is None:
+            return "default"
+
+        if config.max is not None and value > config.max:
+            return "alert"
+
+        if config.min is not None and value < config.min:
+            return "alert"
+
+        return "default"
 
     def _downsample_history_entries(
         self,

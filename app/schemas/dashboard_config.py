@@ -15,6 +15,15 @@ class SensorHistoryConfig(BaseModel):
     title: str | None = None
     hours: int = Field(default=24, ge=1, le=168)
     points: int = Field(default=48, ge=2, le=240)
+    min: float | None = None
+    max: float | None = None
+
+    @model_validator(mode="after")
+    def validate_thresholds(self) -> SensorHistoryConfig:
+        if self.min is not None and self.max is not None and self.min > self.max:
+            raise ValueError("Sensor history 'min' must be less than or equal to 'max'.")
+
+        return self
 
 
 class WeatherRowConfig(BaseModel):

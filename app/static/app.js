@@ -657,7 +657,7 @@
       container.appendChild(heading);
     }
 
-    container.appendChild(buildSensorHistoryChart(history.points));
+    container.appendChild(buildSensorHistoryChart(history));
 
     if (history.min_label || history.max_label) {
       stats = document.createElement("div");
@@ -710,10 +710,12 @@
     return item;
   }
 
-  function buildSensorHistoryChart(points) {
+  function buildSensorHistoryChart(history) {
     var SVG_NS = "http://www.w3.org/2000/svg";
     var chart = document.createElement("div");
     var svg = document.createElementNS(SVG_NS, "svg");
+    var points = (history && history.points) || [];
+    var tone = history && history.tone === "alert" ? "alert" : "default";
     var width = 100;
     var height = 44;
     var padding = 3;
@@ -735,7 +737,8 @@
     var line;
     var area;
 
-    chart.className = "sensor-history-chart";
+    chart.className =
+      "sensor-history-chart" + (tone === "alert" ? " sensor-history-chart-alert" : "");
 
     for (i = 0; i < points.length; i += 1) {
       value = parseFloat(points[i].value);
@@ -800,12 +803,18 @@
 
     area = document.createElementNS(SVG_NS, "path");
     area.setAttribute("d", areaPath);
-    area.setAttribute("class", "sensor-history-area");
+    area.setAttribute(
+      "class",
+      "sensor-history-area" + (tone === "alert" ? " sensor-history-area-alert" : "")
+    );
     svg.appendChild(area);
 
     line = document.createElementNS(SVG_NS, "path");
     line.setAttribute("d", linePath);
-    line.setAttribute("class", "sensor-history-line");
+    line.setAttribute(
+      "class",
+      "sensor-history-line" + (tone === "alert" ? " sensor-history-line-alert" : "")
+    );
     svg.appendChild(line);
 
     chart.appendChild(svg);

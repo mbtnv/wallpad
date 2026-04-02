@@ -193,6 +193,11 @@ body {
   overflow: hidden;
 }
 
+.sensor-history-chart-alert {
+  background: linear-gradient(180deg, rgba(74, 33, 33, 0.92), rgba(33, 18, 18, 0.9));
+  border-color: #5a2a2a;
+}
+
 .sensor-history-chart svg {
   display: block;
   width: 100%;
@@ -208,12 +213,20 @@ body {
   fill: rgba(88, 150, 255, 0.18);
 }
 
+.sensor-history-area-alert {
+  fill: rgba(255, 110, 110, 0.18);
+}
+
 .sensor-history-line {
   fill: none;
   stroke: #70acff;
   stroke-width: 2.1;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.sensor-history-line-alert {
+  stroke: #ff7b7b;
 }
 
 .sensor-history-stats {

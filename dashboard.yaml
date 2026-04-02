@@ -38,6 +38,7 @@ pages:
           title: CO2 History
           hours: 24
           points: 48
+          max: 800
         rows:
           - label: Temperature
             entity: sensor.air_temp
