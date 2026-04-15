@@ -8,9 +8,11 @@ Lightweight wall dashboard built with FastAPI and plain HTML/CSS/JavaScript for 
 - Very lightweight frontend with no build step and no framework
 - Home Assistant token stays on the backend
 - Simple in-memory caching with 5 second TTL and stale fallback
-- Dashboard pages and widgets configured through `dashboard.yaml`
+- Dashboard pages and widgets configured through a live YAML file seeded from `dashboard.yaml`
+- Separate `/config` page for browser-based YAML editing with validation and safe saves
 - Heater controls and scene triggers routed through the backend
 - Config changes are picked up without rebuilding the container
+- Docker keeps the live config in persistent storage so rebuilds do not wipe settings
 
 ## Project Layout
 
@@ -30,16 +32,21 @@ app/
     calendar.py
   routers/
     dashboard.py
+    config_editor.py
     actions.py
     health.py
   schemas/
     dashboard.py
     actions.py
+    config_editor.py
   services/
     home_assistant.py
     cache.py
+    dashboard_config.py
   static/
     index.html
+    config.html
+    config-editor.js
     styles.css
     app.js
 dashboard.yaml
@@ -65,11 +72,18 @@ Environment variables:
 APP_PORT=8080
 HA_BASE_URL=
 HA_TOKEN=
-# Optional; defaults to ./dashboard.yaml
-DASHBOARD_CONFIG_PATH=./dashboard.yaml
+# Optional; defaults to ./dashboard.yaml but .env.example points to an untracked live file
+DASHBOARD_CONFIG_PATH=./dashboard.local.yaml
+# Optional; HTTP Basic auth for /config and /api/config when exposing the editor beyond your LAN
+CONFIG_EDITOR_USERNAME=
+CONFIG_EDITOR_PASSWORD=
 ```
 
-Dashboard layout lives in `dashboard.yaml`. It defines pages and widgets:
+`dashboard.yaml` in the repository is the seed/template file. The live config is read from
+`DASHBOARD_CONFIG_PATH`; if that file does not exist yet, the app copies `dashboard.yaml` into it on
+first start.
+
+Dashboard layout uses this YAML structure:
 
 ```yaml
 default_page: home
@@ -205,7 +219,8 @@ uv run uvicorn app.main:app --reload --host 0.0.0.0 --port "${APP_PORT:-8080}"
 
 Open the dashboard at [http://localhost:8080](http://localhost:8080) by default, or use your `APP_PORT` value.
 
-When you edit `dashboard.yaml`, the backend reloads it automatically on the next poll and the frontend refreshes itself when the config version changes.
+When you edit the live config file, the backend reloads it automatically on the next poll and the
+frontend refreshes itself when the config version changes.
 
 Run quality checks:
 
@@ -221,13 +236,23 @@ cp .env.example .env
 docker compose up --build
 ```
 
-After the first build, editing `dashboard.yaml` does not require rebuilding the container. The file is bind-mounted into the container and reloaded automatically.
+With Docker Compose, the live config is stored in a persistent volume mounted at `/data`, so
+`git pull` and `docker compose up --build` do not overwrite your settings. On the very first start,
+the volume is seeded from the repository's `dashboard.yaml`; after that, your edits live outside the
+git working tree.
+
+Open [http://localhost:8080/config](http://localhost:8080/config) to edit the live YAML from another
+computer on the same network. If you set `CONFIG_EDITOR_USERNAME` and `CONFIG_EDITOR_PASSWORD`, the
+editor is protected with HTTP Basic auth.
 
 Then open [http://localhost:8080](http://localhost:8080) by default, or use your `APP_PORT` value.
 
 ## API Endpoints
 
 - `GET /api/dashboard` returns aggregated dashboard data
+- `GET /api/config` returns the live YAML document plus validation status
+- `POST /api/config/validate` validates YAML without saving it
+- `PUT /api/config` validates and saves YAML with optimistic conflict protection
 - `POST /api/actions/heater/toggle` toggles the configured heater
 - `POST /api/actions/heater/mode` changes the heater mode
 - `POST /api/actions/scene/{scene_id}` triggers a configured scene
@@ -237,9 +262,10 @@ Then open [http://localhost:8080](http://localhost:8080) by default, or use your
 
 - The frontend polls `/api/dashboard` every 15 seconds.
 - The frontend performs a full page reload every 30 minutes, reloads after 10 seconds if the dashboard API is unavailable, and reloads when the YAML config version changes.
+- The `/config` editor warns about unsaved changes and returns HTTP 409 if someone else changed the file before you saved.
 - The clock is updated locally in the browser every second.
 - Missing or unavailable entities are shown as unavailable per widget.
-- If `dashboard.yaml` becomes invalid, the last good config stays active and the UI shows the config error.
+- If the live config file becomes invalid, the last good config stays active and the UI shows the config error.
 - On Home Assistant request failures, the backend returns the last known cached value when possible.
 - `requirements.txt` is included for compatibility, and `uv` is the recommended workflow for local development.
 

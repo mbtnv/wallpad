@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f1722">
+    <title>WallPad Config Editor</title>
+    <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body class="config-page">
+    <main class="editor-app">
+      <header class="editor-hero">
+        <div>
+          <div class="editor-kicker">WallPad</div>
+          <h1>Dashboard Config</h1>
+          <p class="editor-copy">
+            Edit the live YAML config in the browser and save it without logging in to the
+            server shell.
+          </p>
+        </div>
+        <a class="editor-link" href="/">Open dashboard</a>
+      </header>
+
+      <div id="editor-status" class="status" style="display: none;"></div>
+
+      <div class="editor-meta">
+        <span id="editor-version" class="editor-meta-pill">Version: --</span>
+        <span id="editor-validation" class="editor-meta-pill">Validation: waiting for file...</span>
+        <span id="editor-dirty" class="editor-meta-pill">State: clean</span>
+      </div>
+
+      <div class="editor-actions">
+        <button id="reload-button" type="button">Reload</button>
+        <button id="validate-button" type="button">Validate</button>
+        <button id="save-button" type="button" class="primary">Save</button>
+      </div>
+
+      <label class="editor-label" for="config-editor">Live dashboard YAML</label>
+      <textarea
+        id="config-editor"
+        class="editor-textarea"
+        spellcheck="false"
+        autocapitalize="off"
+        autocomplete="off"
+        autocorrect="off"
+      ></textarea>
+    </main>
+
+    <script src="/static/config-editor.js"></script>
+  </body>
+</html>

@@ -4,8 +4,13 @@ services:
     container_name: wallpad
     env_file:
       - .env
+    environment:
+      DASHBOARD_CONFIG_PATH: /data/dashboard.yaml
     volumes:
-      - ./dashboard.yaml:/app/dashboard.yaml:ro
+      - wallpad_data:/data
     ports:
       - "${APP_PORT:-8080}:${APP_PORT:-8080}"
     restart: unless-stopped
+
+volumes:
+  wallpad_data:

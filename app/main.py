@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.orchestrator import get_dashboard_orchestrator
 from app.routers.actions import router as actions_router
+from app.routers.config_editor import router as config_editor_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.health import router as health_router
 
@@ -26,6 +27,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="Wall Dashboard", version="0.1.0", lifespan=lifespan)
 app.include_router(dashboard_router)
 app.include_router(actions_router)
+app.include_router(config_editor_router)
 app.include_router(health_router)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 

@@ -19,3 +19,7 @@ class UpstreamError(AppError):
 
 class ProviderNotRegisteredError(AppError):
     """Raised when an expected provider is missing from the orchestrator."""
+
+
+class ConflictError(AppError):
+    """Raised when a resource changed while a user was editing it."""
