@@ -1,3 +1,8 @@
+:root {
+  --dashboard-scale: 1;
+  --dashboard-viewport-height: 100vh;
+}
+
 html,
 body {
   margin: 0;
@@ -13,6 +18,27 @@ body {
   min-width: 320px;
 }
 
+body.dashboard-page {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: var(--dashboard-viewport-height);
+  overflow: hidden;
+  overscroll-behavior: none;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  -webkit-box-align: start;
+  -webkit-align-items: flex-start;
+  align-items: flex-start;
+}
+
 body.config-page {
   background:
     radial-gradient(circle at top left, rgba(58, 99, 166, 0.22), transparent 32%),
@@ -20,9 +46,25 @@ body.config-page {
 }
 
 .app {
+  box-sizing: border-box;
+  width: 100%;
   max-width: 1024px;
   margin: 0 auto;
   padding: 24px 20px 40px;
+}
+
+body.dashboard-page .app {
+  -webkit-flex: 0 0 auto;
+  flex: 0 0 auto;
+  padding:
+    calc(24px + env(safe-area-inset-top))
+    calc(20px + env(safe-area-inset-right))
+    calc(40px + env(safe-area-inset-bottom))
+    calc(20px + env(safe-area-inset-left));
+  -webkit-transform-origin: top center;
+  transform-origin: top center;
+  -webkit-transform: scale(var(--dashboard-scale));
+  transform: scale(var(--dashboard-scale));
 }
 
 .status {
@@ -71,7 +113,8 @@ body.config-page {
 }
 
 .page-content {
-  touch-action: pan-y;
+  touch-action: none;
+  overflow: hidden;
 }
 
 .page-header,
@@ -691,6 +734,14 @@ button:disabled {
 @media (max-width: 720px) {
   .app {
     padding: 18px 14px 28px;
+  }
+
+  body.dashboard-page .app {
+    padding:
+      calc(18px + env(safe-area-inset-top))
+      calc(14px + env(safe-area-inset-right))
+      calc(28px + env(safe-area-inset-bottom))
+      calc(14px + env(safe-area-inset-left));
   }
 
   .editor-app {

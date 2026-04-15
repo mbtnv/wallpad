@@ -16,6 +16,7 @@
   var pageAnimationResetTimer = null;
   var pageSwipeHandlersBound = false;
   var pageSwipeState = null;
+  var dashboardFitFrame = null;
 
   function byId(id) {
     return document.getElementById(id);
@@ -98,6 +99,7 @@
       bar.style.display = "none";
       bar.textContent = "";
       bar.className = "status";
+      scheduleDashboardFit();
       return;
     }
 
@@ -114,6 +116,8 @@
         showStatus("", false);
       }, 4000);
     }
+
+    scheduleDashboardFit();
   }
 
   function formatClock() {
@@ -267,6 +271,79 @@
     showStatus("", false);
   }
 
+  function getViewportWidth() {
+    if (window.visualViewport && window.visualViewport.width) {
+      return window.visualViewport.width;
+    }
+
+    return window.innerWidth || document.documentElement.clientWidth || 0;
+  }
+
+  function getViewportHeight() {
+    if (window.visualViewport && window.visualViewport.height) {
+      return window.visualViewport.height;
+    }
+
+    return window.innerHeight || document.documentElement.clientHeight || 0;
+  }
+
+  function syncDashboardViewport() {
+    var root = document.documentElement;
+    var viewportHeight = getViewportHeight();
+
+    if (!root || !viewportHeight) {
+      return;
+    }
+
+    root.style.setProperty("--dashboard-viewport-height", viewportHeight + "px");
+  }
+
+  function fitDashboardToViewport() {
+    var app = document.querySelector(".app");
+    var viewportWidth;
+    var viewportHeight;
+    var naturalWidth;
+    var naturalHeight;
+    var scale;
+
+    if (!app) {
+      return;
+    }
+
+    syncDashboardViewport();
+    app.style.setProperty("--dashboard-scale", "1");
+
+    viewportWidth = getViewportWidth();
+    viewportHeight = getViewportHeight();
+    naturalWidth = Math.max(app.offsetWidth, app.scrollWidth);
+    naturalHeight = Math.max(app.offsetHeight, app.scrollHeight);
+
+    if (!viewportWidth || !viewportHeight || !naturalWidth || !naturalHeight) {
+      return;
+    }
+
+    scale = Math.min(1, viewportWidth / naturalWidth, viewportHeight / naturalHeight);
+
+    if (scale > 0.995) {
+      scale = 1;
+    }
+
+    app.style.setProperty("--dashboard-scale", scale.toFixed(4));
+  }
+
+  function scheduleDashboardFit() {
+    syncDashboardViewport();
+
+    if (dashboardFitFrame) {
+      window.cancelAnimationFrame(dashboardFitFrame);
+    }
+
+    dashboardFitFrame = window.requestAnimationFrame(function () {
+      dashboardFitFrame = null;
+      fitDashboardToViewport();
+    });
+  }
+
   function scheduleErrorReload() {
     if (errorReloadTimer) {
       return;
@@ -326,6 +403,7 @@
     renderPageTabs(pages, selectedPageId);
     renderPage(page, pageTransition);
     setLastUpdated(data ? data.generated_at : null);
+    scheduleDashboardFit();
   }
 
   function resolveActivePageId(pages, defaultPageId) {
@@ -530,6 +608,10 @@
     touch = event.touches[0];
     pageSwipeState.currentX = touch.clientX;
     pageSwipeState.currentY = touch.clientY;
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
   }
 
   function handlePageTouchEnd(event) {
@@ -1229,8 +1311,16 @@
 
   function boot() {
     ensurePageLayout();
+    syncDashboardViewport();
     formatClock();
     bindPageSwipeHandlers();
+    scheduleDashboardFit();
+    window.addEventListener("resize", scheduleDashboardFit, false);
+    window.addEventListener("orientationchange", scheduleDashboardFit, false);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", scheduleDashboardFit, false);
+      window.visualViewport.addEventListener("scroll", scheduleDashboardFit, false);
+    }
     window.setInterval(formatClock, CLOCK_INTERVAL_MS);
     loadDashboard(true);
     window.setInterval(function () {
