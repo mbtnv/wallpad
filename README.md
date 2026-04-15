@@ -93,6 +93,10 @@ pages:
   - id: home
     title: "1"
     widgets:
+      - id: home_clock
+        type: clock
+        placement: header
+
       - id: weather
         type: weather
         title: Weather
@@ -136,10 +140,29 @@ pages:
 
 Supported widget types:
 
+- `clock`: local browser clock with date and weekday; can live in the page header or the regular content grid
 - `weather`: main weather entity, YAML-configured weather attributes, optional hourly forecast, plus extra sensor rows
 - `sensor`: one large sensor value, optional history line chart, plus optional rows
 - `heater`: toggle + mode buttons for a climate/select/water_heater entity
 - `scenes`: one or more scene buttons
+
+Clock widgets are configured in YAML and update locally in the browser every second:
+
+```yaml
+- id: home_clock
+  type: clock
+  placement: header
+```
+
+Clock placement defaults to the regular content area. Set `placement: header` to render it in the
+top header zone for that page, or keep the default and use `wide: false` to split the row with
+another widget:
+
+```yaml
+- id: center_clock
+  type: clock
+  wide: false
+```
 
 Weather widget rows can read either another entity or an attribute from the configured weather entity:
 
@@ -263,7 +286,7 @@ Then open [http://localhost:8080](http://localhost:8080) by default, or use your
 - The frontend polls `/api/dashboard` every 15 seconds.
 - The frontend performs a full page reload every 30 minutes, reloads after 10 seconds if the dashboard API is unavailable, and reloads when the YAML config version changes.
 - The `/config` editor warns about unsaved changes and returns HTTP 409 if someone else changed the file before you saved.
-- The clock is updated locally in the browser every second.
+- Clock widgets are updated locally in the browser every second.
 - Missing or unavailable entities are shown as unavailable per widget.
 - If the live config file becomes invalid, the last good config stays active and the UI shows the config error.
 - On Home Assistant request failures, the backend returns the last known cached value when possible.

@@ -52,9 +52,10 @@ class SensorHistoryData(BaseModel):
 
 class DashboardWidgetData(BaseModel):
     id: str
-    type: Literal["weather", "sensor", "heater", "scenes"]
+    type: Literal["weather", "sensor", "heater", "scenes", "clock"]
     title: str
     wide: bool = False
+    placement: Literal["content", "header"] = "content"
     available: bool = False
     primary_text: str | None = None
     secondary_text: str | None = None

@@ -25,24 +25,6 @@ body.config-page {
   padding: 24px 20px 40px;
 }
 
-.hero {
-  text-align: center;
-  margin-bottom: 18px;
-}
-
-.clock-time {
-  font-size: 92px;
-  line-height: 1;
-  font-weight: 600;
-  letter-spacing: 2px;
-}
-
-.clock-date {
-  margin-top: 10px;
-  font-size: 28px;
-  color: #adb7c4;
-}
-
 .status {
   margin-bottom: 18px;
   padding: 14px 18px;
@@ -88,6 +70,11 @@ body.config-page {
   color: #ffffff;
 }
 
+.page-content {
+  touch-action: pan-y;
+}
+
+.page-header,
 .panels {
   display: -webkit-box;
   display: -webkit-flex;
@@ -95,7 +82,10 @@ body.config-page {
   -webkit-flex-wrap: wrap;
   flex-wrap: wrap;
   margin: 0 -10px;
-  touch-action: pan-y;
+}
+
+.page-header {
+  margin-bottom: 8px;
 }
 
 .panels-animate-next,
@@ -185,6 +175,94 @@ body.config-page {
 .panel-wide {
   -webkit-flex-basis: 100%;
   flex-basis: 100%;
+}
+
+.panel-clock {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  min-height: 210px;
+  text-align: center;
+  background:
+    radial-gradient(circle at top center, rgba(74, 127, 204, 0.18), transparent 52%),
+    linear-gradient(180deg, #171d27 0%, #121821 100%);
+}
+
+.panel-clock-compact {
+  min-height: 184px;
+}
+
+.clock-widget-time {
+  font-size: 96px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 2px;
+}
+
+.clock-widget-meta {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+  flex-wrap: wrap;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  gap: 8px 18px;
+  margin-top: 14px;
+  font-size: 28px;
+}
+
+.clock-widget-weekday {
+  color: #eef2f7;
+}
+
+.clock-widget-date {
+  color: #adb7c4;
+}
+
+.panel-clock-compact .clock-widget-time {
+  font-size: 72px;
+}
+
+.panel-clock-compact .clock-widget-meta {
+  gap: 6px 14px;
+  font-size: 22px;
+}
+
+.page-header .panel-clock-header {
+  min-height: auto;
+  padding: 4px 0 14px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.page-header .panel-clock-header h2 {
+  margin-bottom: 10px;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #90a9c4;
+}
+
+.page-header .panel-clock-header .clock-widget-time {
+  font-size: 112px;
+}
+
+.page-header .panel-clock-header .clock-widget-meta {
+  margin-top: 10px;
+  font-size: 30px;
 }
 
 .panel h2 {
@@ -619,11 +697,43 @@ button:disabled {
     padding: 18px 14px 28px;
   }
 
-  .clock-time {
-    font-size: 72px;
+  .page-header {
+    margin-bottom: 4px;
   }
 
-  .clock-date {
+  .panel-clock {
+    min-height: 190px;
+  }
+
+  .panel-clock-compact {
+    min-height: 164px;
+  }
+
+  .clock-widget-time {
+    font-size: 80px;
+  }
+
+  .clock-widget-meta {
+    font-size: 24px;
+  }
+
+  .panel-clock-compact .clock-widget-time {
+    font-size: 62px;
+  }
+
+  .panel-clock-compact .clock-widget-meta {
+    font-size: 20px;
+  }
+
+  .page-header .panel-clock-header {
+    padding-bottom: 10px;
+  }
+
+  .page-header .panel-clock-header .clock-widget-time {
+    font-size: 88px;
+  }
+
+  .page-header .panel-clock-header .clock-widget-meta {
     font-size: 24px;
   }
 

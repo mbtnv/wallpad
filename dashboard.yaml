@@ -5,6 +5,10 @@ pages:
   - id: home
     title: "1"
     widgets:
+      - id: home_clock
+        type: clock
+        placement: header
+
       - id: weather
         type: weather
         title: Weather

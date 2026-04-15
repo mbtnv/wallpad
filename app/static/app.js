@@ -33,6 +33,17 @@
     element.textContent = value;
   }
 
+  function setNodeText(node, value) {
+    if (!node) {
+      return;
+    }
+    if (value === null || typeof value === "undefined" || value === "") {
+      node.textContent = "--";
+      return;
+    }
+    node.textContent = value;
+  }
+
   function showStatus(message, isError) {
     var bar = byId("status-bar");
     if (!bar) {
@@ -62,6 +73,7 @@
   }
 
   function formatClock() {
+    var clockWidgets = document.querySelectorAll("[data-clock-widget]");
     var now = new Date();
     var hours = now.getHours();
     var minutes = now.getMinutes();
@@ -80,12 +92,18 @@
       "November",
       "December"
     ];
+    var timeText = padNumber(hours) + ":" + padNumber(minutes);
+    var weekdayText = weekdays[now.getDay()];
+    var dateText = months[now.getMonth()] + " " + now.getDate();
+    var i;
+    var widget;
 
-    setText("clock-time", padNumber(hours) + ":" + padNumber(minutes));
-    setText(
-      "clock-date",
-      weekdays[now.getDay()] + ", " + months[now.getMonth()] + " " + now.getDate()
-    );
+    for (i = 0; i < clockWidgets.length; i += 1) {
+      widget = clockWidgets[i];
+      setNodeText(widget.querySelector("[data-clock-part='time']"), timeText);
+      setNodeText(widget.querySelector("[data-clock-part='weekday']"), weekdayText);
+      setNodeText(widget.querySelector("[data-clock-part='date']"), dateText);
+    }
   }
 
   function padNumber(value) {
@@ -417,7 +435,7 @@
   }
 
   function bindPageSwipeHandlers() {
-    var container = byId("panels");
+    var container = byId("page-content");
 
     if (!container || pageSwipeHandlersBound) {
       return;
@@ -526,28 +544,62 @@
     return false;
   }
 
+  function resolveWidgetPlacement(widget) {
+    if (widget && widget.placement === "header") {
+      return "header";
+    }
+    return "content";
+  }
+
   function renderPage(page, pageTransition) {
-    var container = byId("panels");
+    var pageContent = byId("page-content");
+    var header = byId("page-header");
+    var panels = byId("panels");
+    var widgets = (page && page.widgets) || [];
+    var headerWidgets = [];
+    var contentWidgets = [];
+    var widget;
     var i;
 
-    if (!container) {
+    if (!pageContent || !header || !panels) {
       return;
     }
 
-    clearPageAnimation(container);
-    container.innerHTML = "";
+    clearPageAnimation(pageContent);
+    header.innerHTML = "";
+    panels.innerHTML = "";
 
-    if (!page || !page.widgets || !page.widgets.length) {
-      container.appendChild(buildEmptyState());
-      applyPageAnimation(container, pageTransition);
+    for (i = 0; i < widgets.length; i += 1) {
+      widget = widgets[i];
+      if (resolveWidgetPlacement(widget) === "header") {
+        headerWidgets.push(widget);
+      } else {
+        contentWidgets.push(widget);
+      }
+    }
+
+    if (headerWidgets.length) {
+      header.style.display = "flex";
+      for (i = 0; i < headerWidgets.length; i += 1) {
+        header.appendChild(buildWidget(headerWidgets[i]));
+      }
+    } else {
+      header.style.display = "none";
+    }
+
+    if (!headerWidgets.length && !contentWidgets.length) {
+      panels.appendChild(buildEmptyState());
+      formatClock();
+      applyPageAnimation(pageContent, pageTransition);
       return;
     }
 
-    for (i = 0; i < page.widgets.length; i += 1) {
-      container.appendChild(buildWidget(page.widgets[i]));
+    for (i = 0; i < contentWidgets.length; i += 1) {
+      panels.appendChild(buildWidget(contentWidgets[i]));
     }
 
-    applyPageAnimation(container, pageTransition);
+    formatClock();
+    applyPageAnimation(pageContent, pageTransition);
   }
 
   function applyPageAnimation(container, pageTransition) {
@@ -596,9 +648,58 @@
     return panel;
   }
 
+  function appendWidgetTitle(panel, value) {
+    var title;
+
+    if (!value) {
+      return;
+    }
+
+    title = document.createElement("h2");
+    title.appendChild(document.createTextNode(value));
+    panel.appendChild(title);
+  }
+
+  function buildClockWidget(widget) {
+    var panel = document.createElement("section");
+    var placement = resolveWidgetPlacement(widget);
+    var time = document.createElement("div");
+    var meta = document.createElement("div");
+    var weekday = document.createElement("div");
+    var date = document.createElement("div");
+
+    panel.className =
+      "panel panel-clock" +
+      (widget.wide ? " panel-wide" : "") +
+      (placement === "header" ? " panel-clock-header" : " panel-clock-content") +
+      (!widget.wide && placement !== "header" ? " panel-clock-compact" : "");
+    panel.setAttribute("data-clock-widget", "true");
+
+    appendWidgetTitle(panel, widget.title);
+
+    time.className = "clock-widget-time";
+    time.setAttribute("data-clock-part", "time");
+    time.appendChild(document.createTextNode("--:--"));
+    panel.appendChild(time);
+
+    meta.className = "clock-widget-meta";
+
+    weekday.className = "clock-widget-weekday";
+    weekday.setAttribute("data-clock-part", "weekday");
+    weekday.appendChild(document.createTextNode("Loading weekday..."));
+    meta.appendChild(weekday);
+
+    date.className = "clock-widget-date";
+    date.setAttribute("data-clock-part", "date");
+    date.appendChild(document.createTextNode("Loading date..."));
+    meta.appendChild(date);
+
+    panel.appendChild(meta);
+    return panel;
+  }
+
   function buildWidget(widget) {
     var panel = document.createElement("section");
-    var title = document.createElement("h2");
     var primary;
     var secondary;
     var historyContainer;
@@ -607,10 +708,12 @@
     var actionsContainer;
     var i;
 
-    panel.className = "panel" + (widget.wide ? " panel-wide" : "");
+    if (widget && widget.type === "clock") {
+      return buildClockWidget(widget);
+    }
 
-    title.appendChild(document.createTextNode(widget.title || "Widget"));
-    panel.appendChild(title);
+    panel.className = "panel" + (widget.wide ? " panel-wide" : "");
+    appendWidgetTitle(panel, widget.title || "Widget");
 
     if (widget.primary_text !== null && typeof widget.primary_text !== "undefined") {
       primary = document.createElement("div");
@@ -811,6 +914,12 @@
     var guide;
     var line;
     var area;
+
+    if (history && history.tone === "alert") {
+      tone = "alert";
+    } else if (history && history.tone === "warning") {
+      tone = "warning";
+    }
 
     chart.className =
       "sensor-history-chart" +
@@ -1091,8 +1200,3 @@
     boot();
   }
 }());
-    if (history && history.tone === "alert") {
-      tone = "alert";
-    } else if (history && history.tone === "warning") {
-      tone = "warning";
-    }

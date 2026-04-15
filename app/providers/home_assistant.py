@@ -9,6 +9,7 @@ from app.config import Settings
 from app.core.errors import ActionError, ConfigurationError
 from app.core.provider_base import BaseProvider, ProviderPayload
 from app.schemas.dashboard_config import (
+    ClockWidgetConfig,
     DashboardConfig,
     HeaterWidgetConfig,
     SceneConfig,
@@ -361,6 +362,8 @@ class HomeAssistantProvider(BaseProvider):
         histories: dict[tuple[str, int], list[dict[str, Any]] | None],
         timezone_name: str | None,
     ) -> dict[str, Any]:
+        if isinstance(widget, ClockWidgetConfig):
+            return self._build_clock_widget(widget)
         if isinstance(widget, WeatherWidgetConfig):
             return self._build_weather_widget(widget, states, forecasts, timezone_name)
         if isinstance(widget, SensorWidgetConfig):
@@ -378,6 +381,23 @@ class HomeAssistantProvider(BaseProvider):
             "available": False,
             "primary_text": "--",
             "secondary_text": "Unsupported widget type",
+            "rows": [],
+            "actions": [],
+        }
+
+    def _build_clock_widget(
+        self,
+        widget: ClockWidgetConfig,
+    ) -> dict[str, Any]:
+        return {
+            "id": widget.id,
+            "type": widget.type,
+            "title": widget.title,
+            "wide": widget.wide,
+            "placement": widget.placement,
+            "available": True,
+            "primary_text": None,
+            "secondary_text": None,
             "rows": [],
             "actions": [],
         }

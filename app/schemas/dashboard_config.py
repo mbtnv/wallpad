@@ -103,8 +103,20 @@ class ScenesWidgetConfig(WidgetBaseConfig):
     scenes: list[SceneConfig] = Field(default_factory=list)
 
 
+class ClockWidgetConfig(BaseModel):
+    id: str
+    type: Literal["clock"]
+    title: str = ""
+    wide: bool = True
+    placement: Literal["content", "header"] = "content"
+
+
 WidgetConfig = Annotated[
-    WeatherWidgetConfig | SensorWidgetConfig | HeaterWidgetConfig | ScenesWidgetConfig,
+    WeatherWidgetConfig
+    | SensorWidgetConfig
+    | HeaterWidgetConfig
+    | ScenesWidgetConfig
+    | ClockWidgetConfig,
     Field(discriminator="type"),
 ]
 
