@@ -21,6 +21,50 @@
     return document.getElementById(id);
   }
 
+  function ensurePageLayout() {
+    var app = document.querySelector(".app");
+    var statusBar = byId("status-bar");
+    var pageContent = byId("page-content");
+    var pageHeader = byId("page-header");
+    var panels = byId("panels");
+    var footer = document.querySelector(".footer");
+    var legacyHero = document.querySelector(".hero");
+
+    if (!app || !panels) {
+      return;
+    }
+
+    if (!pageContent) {
+      pageContent = document.createElement("div");
+      pageContent.id = "page-content";
+      pageContent.className = "page-content";
+
+      if (statusBar && statusBar.parentNode === app) {
+        app.insertBefore(pageContent, statusBar.nextSibling);
+      } else if (footer && footer.parentNode === app) {
+        app.insertBefore(pageContent, footer);
+      } else {
+        app.appendChild(pageContent);
+      }
+    }
+
+    if (!pageHeader) {
+      pageHeader = document.createElement("div");
+      pageHeader.id = "page-header";
+      pageHeader.className = "page-header";
+      pageHeader.style.display = "none";
+      pageContent.insertBefore(pageHeader, pageContent.firstChild);
+    }
+
+    if (panels.parentNode !== pageContent) {
+      pageContent.appendChild(panels);
+    }
+
+    if (legacyHero && legacyHero.parentNode) {
+      legacyHero.parentNode.removeChild(legacyHero);
+    }
+  }
+
   function setText(id, value) {
     var element = byId(id);
     if (!element) {
@@ -435,6 +479,7 @@
   }
 
   function bindPageSwipeHandlers() {
+    ensurePageLayout();
     var container = byId("page-content");
 
     if (!container || pageSwipeHandlersBound) {
@@ -552,6 +597,7 @@
   }
 
   function renderPage(page, pageTransition) {
+    ensurePageLayout();
     var pageContent = byId("page-content");
     var header = byId("page-header");
     var panels = byId("panels");
@@ -1182,6 +1228,7 @@
   }
 
   function boot() {
+    ensurePageLayout();
     formatClock();
     bindPageSwipeHandlers();
     window.setInterval(formatClock, CLOCK_INTERVAL_MS);

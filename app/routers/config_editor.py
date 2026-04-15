@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from app.config import Settings, get_settings
 from app.core.errors import ConfigurationError, ConflictError
+from app.core.static_pages import render_static_html
 from app.schemas.config_editor import (
     DashboardConfigDocumentResponse,
     DashboardConfigUpdateRequest,
@@ -79,8 +79,8 @@ def require_config_editor_access(
     include_in_schema=False,
     dependencies=[Depends(require_config_editor_access)],
 )
-async def config_editor_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "config.html")
+async def config_editor_page():
+    return render_static_html(STATIC_DIR, "config.html")
 
 
 @router.get(
@@ -88,8 +88,8 @@ async def config_editor_page() -> FileResponse:
     include_in_schema=False,
     dependencies=[Depends(require_config_editor_access)],
 )
-async def config_editor_page_file() -> FileResponse:
-    return FileResponse(STATIC_DIR / "config.html")
+async def config_editor_page_file():
+    return render_static_html(STATIC_DIR, "config.html")
 
 
 @router.get(
